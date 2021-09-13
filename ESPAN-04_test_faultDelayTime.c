@@ -33,7 +33,15 @@
 
 //#define NUMBER_OF_595 8
 
-#use rs232(baud=9600,parity=N,xmit=PTxD,rcv=PRxD,bits=8,restart_wdt)
+//#use rs232(baud=9600,parity=N,xmit=PTxD,rcv=PRxD,bits=8,restart_wdt)
+/* Config and Enable Hardware UART1(RC6=TX1,RC7=RX1 */
+#use rs232(uart1, baud=9600, stream=CH1)
+
+/* Config and Enable Software UART2(RC0=TX2,RC1=RX2 */
+
+#define TX2 PIN_B0                                                            // RC0 = TXD
+#define RX2 PIN_B1                                                            // RC1 = RXD
+#use rs232(baud=9600, xmit=TX2, rcv=RX2,stream=CH2)
 
 //#USE SPI (  FORCE_HW, BITS=16, ENABLE=IO_CS_PIN, SAMPLE_RISE, stream=SPI_STREAM) 
 //#USE SPI (  FORCE_HW, BITS=16, ENABLE=IO_CS_PIN, SAMPLE_RISE, stream=SPI_STREAM2)
@@ -107,6 +115,8 @@ int8 EEpDat;
 
 volatile int1 RefreshConfigData =0;
 
+volatile int1 functointest_f = 0;
+
 ///////// Data from EEProm ///////
 //int Device_Addr;
 
@@ -174,15 +184,15 @@ volatile int8 StartReadCount;
 
 //////////////////////////////////////
 unsigned char const addr_sq = 0x10,end_sq = 0x11,code_sq = 0x12,start_addr_hi_sq = 0x13,start_addr_lo_sq = 0x14;         //serial sequnce
-unsigned char const ubyte_hi_sq = 0x15,ubyte_lo_sq = 0x16,crc_hi_sq = 0x17,byte_count_sq = 0x19,data_sq = 0x20;      //serial sequnce
+unsigned char const ubyte_hi_sq = 0x15,ubyte_lo_sq = 0x16,crc_hi_sq = 0x17, second_numofdata = 0x18,byte_count_sq = 0x19,data_sq = 0x20;      //serial sequnce
 
 
 int1 recieve_completed = 0;
 unsigned char sequence;         //keep sequence use for RxD
 unsigned char Address;
 unsigned char RxD_DataLen = 0x00;
-unsigned char TxD_Buff[60];
-unsigned char RxD_Buff[60];
+unsigned char TxD_Buff[512];
+unsigned char RxD_Buff[1024];
 unsigned char CRC_Lo;
 unsigned char CRC_Hi;
 int16 Send_check_Time = 500; //if no send reset buffer every 5 second
@@ -190,7 +200,7 @@ int16 Send_check_Time = 500; //if no send reset buffer every 5 second
 int16 Start_Address = 0x0000;
 int16 No_PointCount = 0x0000;
 unsigned char Data_ByteCount = 0x00;
-unsigned char Data_Buff[30];
+unsigned char Data_Buff[1024];
 //unsigned char DataTemp;
 //unsigned char TxD_DataLen;
 
@@ -200,9 +210,32 @@ int8 MCP23s17_Ip_dat;
 int8 MCP23s17_Op_dat;
 
 unsigned char T_timeout;    //use for calculate RxD timeout
-unsigned char index = 0x00; //use for Loop
+int16 index = 0x00; //use for Loop
 
 int8 outmcp23 = 0;
+
+unsigned char sms_phonenumber[15];
+
+unsigned char SMS_Massage1[32];
+unsigned char SMS_Massage2[32];
+unsigned char SMS_Massage3[32];
+unsigned char SMS_Massage4[32];
+unsigned char SMS_Massage5[32];
+unsigned char SMS_Massage6[32];
+unsigned char SMS_Massage7[32];
+unsigned char SMS_Massage8[32];
+unsigned char SMS_Massage9[32];
+unsigned char SMS_Massage10[32];
+unsigned char SMS_Massage11[32];
+unsigned char SMS_Massage12[32];
+unsigned char SMS_Massage13[32];
+unsigned char SMS_Massage14[32];
+unsigned char SMS_Massage15[32];
+unsigned char SMS_Massage16[32];
+unsigned char SMS_Massage17[32];
+unsigned char SMS_Massage18[32];
+unsigned char SMS_Massage19[32];
+unsigned char SMS_Massage20[32];
 
 unsigned char const CRC_Table_Hi[] = {
 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81,
@@ -271,11 +304,12 @@ struct Bit64 Output,InputType;
 struct Bit64 FaultType,OutputType,OutputBoth;
 struct Bit64 AlarmIndicator,Ack,In,In2;
 struct Bit64 LED_Colour,AckSend,RED_Colour,GREEN_Colour;
+struct Bit64 SendSMS;
 
-int1 FaultAgo[30];
-int1 FaultNow[30];
-int16 ReleaseTime[30];
-int16 FaultDelayTime[30];
+int1 FaultAgo[21];
+int1 FaultNow[21];
+int16 ReleaseTime[21];
+int16 FaultDelayTime[21];
 
 int1 FaultNCNO[21];
 #define NO 1
@@ -515,6 +549,7 @@ void CRC(unsigned char *puchMsg , unsigned char usDataLen)
 }
 
 /********************************6B595 Driver*********************************/
+/*
 void Driver595()
 {
    Signed int8 j=0;
@@ -566,6 +601,7 @@ void Driver595()
    delay_us(1);
    output_low(EXP_OUT_ENABLE);
 }
+*/
 ////////////////////////////////////////////////////////////////////////////////
 
 void checkCommand(void)
@@ -603,6 +639,11 @@ void checkCommand(void)
           sequence = byte_count_sq ;
           T_timeout = 0x14; //200ms
        }
+       else if(RxD_Buff[RxD_DataLen - 1] == 0x22)   /////SMS setting/////
+       {
+          sequence = second_numofdata ;
+          T_timeout = 0x14; //200ms
+       }
        else                           // Invalid Code
        {
           RxD_DataLen = 0x00;
@@ -611,12 +652,26 @@ void checkCommand(void)
           output_bit(P485ctrl,0);
        }
    }
+   else if(sequence == second_numofdata)
+   {
+      RxD_Buff[RxD_DataLen] = SBUF ;      //Byte 3   Start address High Byte
+      restart_wdt();
+      RxD_DataLen ++ ;
+      sequence = byte_count_sq;
+      T_timeout = 0x14; //200ms
+   }
    else if(sequence == byte_count_sq)
    {
       RxD_Buff[RxD_DataLen] = SBUF ;      //Byte 3   Data Byte Count
       restart_wdt();
       RxD_DataLen ++ ;
-      index = RxD_Buff[RxD_DataLen - 1] ;    //Data Byte Count
+      if(RxD_Buff[1] == 0x22)   /////SMS setting/////
+      {
+         index = (RxD_Buff[2] * 0x64) + RxD_Buff[3];
+      }
+      else{
+         index = RxD_Buff[RxD_DataLen - 1] ;    //Data Byte Count
+      }
       T_timeout = 0x14; //200ms
       sequence = data_sq ;
    }
@@ -698,7 +753,6 @@ void Modbus_Function(void)
    if(CRC_Hi == RxD_Buff[RxD_DataLen - 1] && CRC_Lo == RxD_Buff[RxD_DataLen])
    {
    
-         
       if((RxD_Buff[0] == 0xAA)&&(RxD_Buff[1] == 0x20)) //Read Setting//0xAA Is Any Address 
       {
          TxD_Buff[0] = Address ;         //Address
@@ -1208,209 +1262,6 @@ void Modbus_Function(void)
        }
       /////////////////////////////////////////////////////////////////
 
-         /*-------------jack----
-         //else if(RxD_Buff[1] == 0x02)/////////// READ Inputt /////////////////////
-         if(RxD_Buff[1] == 0x02)///////////// READ Inputt /////////////////////
-         {
-            //Do Read Inputt
-            Start_Address = RxD_Buff[2] ;
-            Start_Address = (Start_Address << 8) | RxD_Buff[3] ;   //Start Address 16 bit
-            No_PointCount = RxD_Buff[4] ;
-            No_PointCount = (No_PointCount << 8) | RxD_Buff[5] ;      //No. of Point 16 bit
-
-            //if(Start_Address < 0x10 && (Start_Address + No_PointCount) < 0x11)  //Valid point 0-15
-            if(Start_Address == 0x00 && No_PointCount == 0x28)  //Valid point 0-40
-            {
-            
-               //\* //----JACK Comment --------//
-               if(No_PointCount < 9) Data_ByteCount = 0x01 ;
-               else if(No_PointCount < 17) Data_ByteCount = 0x02 ;
-               else if(No_PointCount < 25) Data_ByteCount = 0x03 ;
-
-               if(Data_ByteCount == 0x01)
-               {
-                  if(Start_Address < 0x09)
-                  {
-                     Data_Buff[0] = Input1_8 >> Start_Address ;
-                     DataTemp = Input9_16 << (0x08 - Start_Address) ;
-                     Data_Buff[0] = (Input1_8 >> Start_Address) | DataTemp;   //Low Byte
-                  }
-                  else if(Start_Address > 0x08 && Start_Address < 0x10)
-                  {
-                     Data_Buff[0] = Input9_16 >> (Start_Address - 0x08) ;
-                  }
-
-
-                  if(No_PointCount == 0x08)
-                  {
-                     Data_Buff[0] = Data_Buff[0] & 0xFF ; //8 Point High Byte
-                  }
-                  else if(No_PointCount == 0x07)
-                  {
-                     Data_Buff[0] =    Data_Buff[0] & 0x7F ; //7 Point High Byte
-                  }
-                  else if(No_PointCount == 0x06)
-                  {
-                     Data_Buff[0] =    Data_Buff[0] & 0x3F ; //6 Point High Byte
-                  }
-                  else if(No_PointCount == 0x05)
-                  {
-                     Data_Buff[0] =    Data_Buff[0] & 0x1F ; //5 Point High Byte
-                  }
-                  else if(No_PointCount == 0x04)
-                  {
-                     Data_Buff[0] =    Data_Buff[0] & 0x0F ; //4 Point High Byte
-                  }
-                  else if(No_PointCount == 0x03)
-                  {
-                     Data_Buff[0] =    Data_Buff[0] & 0x07 ; //3 Point High Byte
-                  }
-                  else if(No_PointCount == 0x02)
-                  {
-                     Data_Buff[0] =    Data_Buff[0] & 0x03 ; //2 Point High Byte
-                  }
-                  else if(No_PointCount == 0x01)
-                  {
-                     Data_Buff[0] =    Data_Buff[0] & 0x01 ; //1 Point High Byte
-                  }
-
-                  TxD_Buff[0] = Address ;         //Address
-                  TxD_Buff[1] = 0x02 ;         //Function Code
-                  TxD_Buff[2] = Data_ByteCount ;   //Byte Count
-                  TxD_Buff[3] = Data_Buff[0] ;   //Data
-
-                  CRC(TxD_Buff,4)   ;            //Cal CRC 4 Byte
-
-                  TxD_Buff[4] = CRC_Hi ;
-                  TxD_Buff[5] = CRC_Lo ;
-
-                  TxD_DataLen = 0x06 ;
-                  //rs485_ctrl = 1;
-                  //dmsec(4);
-                  //send = 1;
-                  //TI=1;
-        //*\///----JACK Comment --------//
-
-                  TxD_Buff[0] = Address ;         //Address
-                  TxD_Buff[1] = 0x02 ;         //Function Code
-                  TxD_Buff[2] = 0x05 ;   //Byte Count
-                  TxD_Buff[3] = Input1_8 ;   //Data
-                  TxD_Buff[4] = Input9_16 ;   //Data
-                  TxD_Buff[5] = Input17_24 ;   //Data
-                  TxD_Buff[6] = Input25_32 ;   //Data
-                  TxD_Buff[7] = Input33_40 ;   //Data
-
-                  CRC(TxD_Buff,8);            //Cal CRC 4 Byte
-
-                  TxD_Buff[8] = CRC_Hi ;
-                  TxD_Buff[9] = CRC_Lo ;
-
-                  output_bit(P485ctrl,1);
-                  restart_wdt();
-                  delay_ms(4);
-                  restart_wdt();
-
-                  putc(TxD_Buff[0]) ;               //Address
-                  putc(TxD_Buff[1]) ;               //Function Code
-                  putc(TxD_Buff[2]) ;               //Byte Count
-                  putc(TxD_Buff[3]) ;
-                  putc(TxD_Buff[4]) ;
-                  putc(TxD_Buff[5]) ;
-                  putc(TxD_Buff[6]) ;
-                  putc(TxD_Buff[7]) ;
-                  putc(TxD_Buff[8]) ;
-                  putc(TxD_Buff[9]) ;
-
-                  delay_ms(3);
-                  output_bit(P485ctrl,0);
-
-               /*}
-               else if(Data_ByteCount == 0x02)
-               {
-                  Data_Buff[1] = ~Inputt[1] >> Start_Address ;
-                  DataTemp = ~Inputt[1] << (0x08 - Start_Address) ;
-                  Data_Buff[0] = (~Inputt[0] >> Start_Address) | DataTemp;   //Low Byte
-
-                  if((No_PointCount - 0x08) == 0x08)
-                  {
-                     Data_Buff[1] = Data_Buff[1] & 0xFF ; //16 Point High Byte
-                  }
-                  else if((No_PointCount - 0x08) == 0x07)
-                  {
-                     Data_Buff[1] =    Data_Buff[1] & 0x7F ; //15 Point High Byte
-                  }
-                  else if((No_PointCount - 0x08) == 0x06)
-                  {
-                     Data_Buff[1] =    Data_Buff[1] & 0x3F ; //14 Point High Byte
-                  }
-                  else if((No_PointCount - 0x08) == 0x05)
-                  {
-                     Data_Buff[1] =    Data_Buff[1] & 0x1F ; //13 Point High Byte
-                  }
-                  else if((No_PointCount - 0x08) == 0x04)
-                  {
-                     Data_Buff[1] =    Data_Buff[1] & 0x0F ; //12 Point High Byte
-                  }
-                  else if((No_PointCount - 0x08) == 0x03)
-                  {
-                     Data_Buff[1] =    Data_Buff[1] & 0x07 ; //11 Point High Byte
-                  }
-                  else if((No_PointCount - 0x08) == 0x02)
-                  {
-                     Data_Buff[1] =    Data_Buff[1] & 0x03 ; //10 Point High Byte
-                  }
-                  else if((No_PointCount - 0x08) == 0x01)
-                  {
-                     Data_Buff[1] =    Data_Buff[1] & 0x01 ; //9 Point High Byte
-                  }
-
-                  TxD_Buff[0] = Address ;         //Address
-                  TxD_Buff[1] = 0x02 ;         //Function Code
-                  TxD_Buff[2] = Data_ByteCount ;   //Byte Count
-                  TxD_Buff[3] = Data_Buff[0] ;      //first byte Data
-                  TxD_Buff[4] = Data_Buff[1] ;      //second byte Data
-
-                  CRC(TxD_Buff,5)   ;            //Cal CRC 5 Byte
-
-                  TxD_Buff[5] = CRC_Hi ;
-                  TxD_Buff[6] = CRC_Lo ;
-
-                  TxD_DataLen = 0x07 ;
-                  rs485_ctrl = 1;
-                  dmsec(4);
-                  send = 1;
-                  TI=1;
-               }//
-            }
-            else
-            {
-               //Invalid function
-               TxD_Buff[0] = Address ;         //Address
-               TxD_Buff[1] = 0x81 ;         //Function Code
-               TxD_Buff[2] = 0x01 ;         //illegal function
-
-               CRC(TxD_Buff,3)   ;            //Cal CRC 3 Byte
-
-               TxD_Buff[3] = CRC_Hi ;
-               TxD_Buff[4] = CRC_Lo ;
-
-               output_bit(P485ctrl,1);
-               delay_ms(10);
-
-               putc(Txd_Buff[0]);
-               putc(Txd_Buff[1]);
-               putc(Txd_Buff[2]);
-               putc(Txd_Buff[3]);
-               putc(Txd_Buff[4]);
-
-               delay_ms(3);
-               output_bit(P485ctrl,0);
-            }
-
-         }
-      }
-      
-      */
        else if(RxD_Buff[1] == 0x05)///////////// FORCE COIL /////////////////////
          {
             //Do Force Coil
@@ -1581,11 +1432,6 @@ void Modbus_Function(void)
                   TxD_Buff[6] = CRC_Hi ;
                   TxD_Buff[7] = CRC_Lo ;
 
-                  //TxD_DataLen = 0x08 ;
-                  //rs485_ctrl = 1;
-                  //dmsec(4);
-                  //send = 1;
-                  //TI=1;
                   output_bit(P485ctrl,1);
                   restart_wdt();
                   delay_ms(4);
@@ -1690,8 +1536,6 @@ void Modbus_Function(void)
                   putc(TxD_Buff[5]) ;
                   putc(TxD_Buff[6]) ;
                   putc(TxD_Buff[7]) ;
-                  //putc(TxD_Buff[8]) ;
-                  //putc(TxD_Buff[9]) ;
 
                   restart_wdt();
                   delay_ms(3);
@@ -1717,11 +1561,6 @@ void Modbus_Function(void)
                TxD_Buff[6] = CRC_Hi ;
                TxD_Buff[7] = CRC_Lo ;
 
-               //TxD_DataLen = 0x08 ;
-               //rs485_ctrl = 1;
-               //dmsec(4);
-               //send = 1;
-               //TI=1;
                output_bit(P485ctrl,1);
                restart_wdt();
                delay_ms(4);
@@ -1749,142 +1588,6 @@ void Modbus_Function(void)
          }
          //--------------------------------------------------//
          
-         /*
-         else if(RxD_Buff[1] == 0x20)///////////// READ SETTING /////////////////////
-         {
-            TxD_Buff[0] = Address ;         //Address
-            TxD_Buff[1] = 0x20 ;            //function code
-            TxD_Buff[2] = 0x30 ;            //0-48 Byte//Data Byte count
-            
-            TxD_Buff[3] = InputType1_8 ;
-            TxD_Buff[4] = InputType9_16 ;
-            TxD_Buff[5] = InputType17_24 ;
-            
-            TxD_Buff[6] = FaultType1_8 ;
-            TxD_Buff[7] = FaultType9_16 ;
-            TxD_Buff[8] = FaultType17_24 ;
-            
-            TxD_Buff[9] = OutputType1_8 ;
-            TxD_Buff[10] = OutputType9_16 ;
-            TxD_Buff[11] = OutputType17_24 ;
-            
-            TxD_Buff[12] = OutputBoth1_8 ;
-            TxD_Buff[13] = OutputBoth9_16 ;
-            TxD_Buff[14] = OutputBoth17_24 ;
-           
-            TxD_Buff[15] = Alarm_Indicator1_8 ;
-            TxD_Buff[16] = Alarm_Indicator9_16 ;
-            TxD_Buff[17] = Alarm_Indicator17_24 ;
-           
-            TxD_Buff[18] = Red1_8;
-            TxD_Buff[19] = Red9_10;
-            TxD_Buff[20] = Red11_18;
-            TxD_Buff[21] = Red19_20;
-            TxD_Buff[22] = Green1_8;
-            TxD_Buff[23] = Green9_10;
-            TxD_Buff[24] = Green11_18;
-            TxD_Buff[25] = Green19_20;
-         
-         
-            TxD_Buff[26] = AutoAck ;
-            TxD_Buff[27] = AutoAckTime ;
-            TxD_Buff[28] = FlashingRate ;
-            TxD_Buff[29] = NoOfPoint ;
-            TxD_Buff[30] = FaultDelayTime[0] ;
-            TxD_Buff[31] = Address ;
-            
-            TxD_Buff[32] = FaultDelayTime[1] ;
-            TxD_Buff[33] = FaultDelayTime[2] ;
-            TxD_Buff[34] = FaultDelayTime[3] ;
-            TxD_Buff[35] = FaultDelayTime[4] ;
-            TxD_Buff[36] = FaultDelayTime[5] ;
-            TxD_Buff[37] = FaultDelayTime[6] ;
-            TxD_Buff[38] = FaultDelayTime[7] ;
-            TxD_Buff[39] = FaultDelayTime[8] ;
-            TxD_Buff[40] = FaultDelayTime[9] ;
-            TxD_Buff[41] = FaultDelayTime[10] ;
-            TxD_Buff[42] = FaultDelayTime[11] ;
-            TxD_Buff[43] = FaultDelayTime[12] ;
-            TxD_Buff[44] = FaultDelayTime[13] ;
-            TxD_Buff[45] = FaultDelayTime[14] ;
-            TxD_Buff[46] = FaultDelayTime[15] ;
-            TxD_Buff[47] = FaultDelayTime[16] ;
-            TxD_Buff[48] = FaultDelayTime[17] ;
-            TxD_Buff[49] = FaultDelayTime[18] ;
-            TxD_Buff[50] = FaultDelayTime[19] ;
-            TxD_Buff[51] = FaultDelayTime[20] ;
-            
-            
-            CRC(TxD_Buff,52)   ; //Cal CRC 49 byte
-
-            TxD_Buff[52] = CRC_Hi ;
-            TxD_Buff[53] = CRC_Lo ;
-
-            output_bit(P485ctrl,1);
-            delay_ms(10);
-
-            putc(Txd_Buff[0]);
-            putc(Txd_Buff[1]);
-            putc(Txd_Buff[2]);
-            putc(Txd_Buff[3]);
-            putc(Txd_Buff[4]);
-            putc(Txd_Buff[5]);
-            putc(Txd_Buff[6]);
-            putc(Txd_Buff[7]);
-            putc(Txd_Buff[8]);
-            putc(Txd_Buff[9]);
-            putc(Txd_Buff[10]);
-            putc(Txd_Buff[11]);
-            putc(Txd_Buff[12]);
-            putc(Txd_Buff[13]);
-            putc(Txd_Buff[14]);
-            putc(Txd_Buff[15]);
-            putc(Txd_Buff[16]);
-            putc(Txd_Buff[17]);
-            putc(Txd_Buff[18]);
-            putc(Txd_Buff[19]);
-            putc(Txd_Buff[20]);
-            putc(Txd_Buff[21]);
-            putc(Txd_Buff[22]);
-            putc(Txd_Buff[23]);
-            putc(Txd_Buff[24]);
-            putc(Txd_Buff[25]);
-            putc(Txd_Buff[26]);
-            putc(Txd_Buff[27]);
-            putc(Txd_Buff[28]);
-            putc(Txd_Buff[29]);
-            putc(Txd_Buff[30]);
-            putc(Txd_Buff[31]);
-            
-            putc(Txd_Buff[32]);
-            putc(Txd_Buff[33]);
-            putc(Txd_Buff[34]);
-            putc(Txd_Buff[35]);
-            putc(Txd_Buff[36]);
-            putc(Txd_Buff[37]);
-            putc(Txd_Buff[38]);
-            putc(Txd_Buff[39]);
-            putc(Txd_Buff[40]);
-            putc(Txd_Buff[41]);
-            
-            putc(Txd_Buff[42]);
-            putc(Txd_Buff[43]);
-            putc(Txd_Buff[44]);
-            putc(Txd_Buff[45]);
-            putc(Txd_Buff[46]);
-            putc(Txd_Buff[47]);
-            putc(Txd_Buff[48]);
-            putc(Txd_Buff[49]);
-            putc(Txd_Buff[50]);
-            putc(Txd_Buff[51]);
-            
-            putc(Txd_Buff[52]);
-            putc(Txd_Buff[53]);
-          
-            delay_ms(3);
-            output_bit(P485ctrl,0);
-         }
-         */
          else if(RxD_Buff[1] == 0x21)///////////// WRITE SETTING /////////////////////
          {
 
@@ -1893,47 +1596,22 @@ void Modbus_Function(void)
             write_eeprom(0x01,RxD_Buff[3]);   //Inputt Type
             write_eeprom(0x02,RxD_Buff[4]);
             write_eeprom(0x03,RxD_Buff[5]);
-           // write_eeprom(0x04,RxD_Buff[6]);
-           // write_eeprom(0x05,RxD_Buff[7]);
-           // write_eeprom(0x06,RxD_Buff[8]);
-           // write_eeprom(0x07,RxD_Buff[9]);
-           // write_eeprom(0x08,RxD_Buff[10]);
 
             write_eeprom(0x04,RxD_Buff[6]);   //Fault Type
             write_eeprom(0x05,RxD_Buff[7]);
             write_eeprom(0x06,RxD_Buff[8]);
-            //write_eeprom(0x0C,RxD_Buff[14]);
-           // write_eeprom(0x0D,RxD_Buff[15]);
-            //write_eeprom(0x0E,RxD_Buff[16]);
-           // write_eeprom(0x0F,RxD_Buff[17]);
-           // write_eeprom(0x10,RxD_Buff[18]);
 
             write_eeprom(0x07,RxD_Buff[9]);   //Output Type
             write_eeprom(0x08,RxD_Buff[10]);
             write_eeprom(0x09,RxD_Buff[11]);
-           // write_eeprom(0x14,RxD_Buff[22]);
-           // write_eeprom(0x15,RxD_Buff[23]);
-          //  write_eeprom(0x16,RxD_Buff[24]);
-           // write_eeprom(0x17,RxD_Buff[25]);
-           // write_eeprom(0x18,RxD_Buff[26]);
 
             write_eeprom(0x0A,RxD_Buff[12]);   //Output Both
             write_eeprom(0x0B,RxD_Buff[13]);
             write_eeprom(0x0C,RxD_Buff[14]);
-           // write_eeprom(0x1C,RxD_Buff[30]);
-           // write_eeprom(0x1D,RxD_Buff[31]);
-           // write_eeprom(0x1E,RxD_Buff[32]);
-           // write_eeprom(0x1F,RxD_Buff[33]);
-           // write_eeprom(0x20,RxD_Buff[34]);
 
             write_eeprom(0x0D,RxD_Buff[15]);   //Alarm / Indicator
             write_eeprom(0x0E,RxD_Buff[16]);
             write_eeprom(0x0F,RxD_Buff[17]);
-           // write_eeprom(0x24,RxD_Buff[38]);
-           // write_eeprom(0x25,RxD_Buff[39]);
-           // write_eeprom(0x26,RxD_Buff[40]);
-           // write_eeprom(0x27,RxD_Buff[41]);
-           // write_eeprom(0x28,RxD_Buff[42]);
          
             // LED Colour Config
             write_eeprom(0x10,RxD_Buff[18]); //Red1_8
@@ -1972,8 +1650,27 @@ void Modbus_Function(void)
             write_eeprom(0x2F,RxD_Buff[49]);   //Communication Address
             write_eeprom(0x30,RxD_Buff[50]);   //Communication Address
             write_eeprom(0x31,RxD_Buff[51]);   //Communication Address
-         
-         
+            
+            int16  a = 0; 
+            unsigned char  phonenum;
+            for(; ; a++)
+            {
+               restart_wdt();
+               phonenum = RxD_Buff[52 + a];
+               if((phonenum == 0x0D) || (a > 15))
+               {
+                  sms_phonenumber[a] =  '\0' ;
+                  write_eeprom(0x32+a,phonenum);
+                  break;
+               }
+               else
+               {
+                  sms_phonenumber[a] = phonenum;
+                  
+                  write_eeprom(0x32+a,phonenum);
+               }
+            }
+            
             TxD_Buff[0] = Address ;         //Address
             TxD_Buff[1] = 0x21 ;            //return function code
 
@@ -1996,6 +1693,401 @@ void Modbus_Function(void)
             reset_cpu();
             //Read_Config(); //jj
          }
+         
+         else if(RxD_Buff[1] == 0x22)///////////// WRITE Faultname /////////////////////
+            {
+               
+               //SMS_Massage
+               int16  i =4,j=0,k=0; //i =4 are first data from RxD_Buff[]
+               for(; ; i++,j++)
+               {
+                  restart_wdt();
+                  if((RxD_Buff[i] == 0x0D) || (j > 30))
+                  {
+                     write_eeprom(0x5D+i,0x0D);
+                     break;
+                  }
+                  else
+                  {
+                     SMS_Massage1[j] = RxD_Buff[i];
+                     
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                  }
+               }
+               SMS_Massage1[j] = '\0' ; // end string
+               
+               j=0;
+               i++;
+               
+               for(; ; i++,j++)
+               {
+                  restart_wdt();
+                  if((RxD_Buff[i] == 0x0D) || (j > 30))
+                  {  
+                     write_eeprom(0x5D+i,0x0D);
+                     break;
+                  }
+                  else
+                  {
+                     SMS_Massage2[j] = RxD_Buff[i];
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                  }
+               }
+               SMS_Massage2[j] = '\0' ; // end string
+               
+               j=0;
+               i++;
+               
+               for(; ; i++,j++)
+               {
+                  restart_wdt();
+                  if((RxD_Buff[i] == 0x0D) || (j > 30))
+                  {
+                     write_eeprom(0x5D+i,0x0D);
+                     break;
+                  }
+                  else
+                  {
+                     SMS_Massage3[j] = RxD_Buff[i];
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                  }
+               }
+               SMS_Massage3[j] = '\0' ; // end string
+               
+               j=0;
+               i++;
+               
+               for(; ; i++,j++)
+               {
+                  restart_wdt();
+                  if((RxD_Buff[i] == 0x0D) || (j > 30))
+                  {
+                     write_eeprom(0x5D+i,0x0D);
+                     break;
+                  }
+                  else
+                  {
+                     SMS_Massage4[j] = RxD_Buff[i];
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                  }
+               }
+               SMS_Massage4[j] = '\0' ; // end string
+               
+               j=0;
+               i++;
+               
+               for(; ; i++,j++)
+               {
+                  restart_wdt();
+                  if((RxD_Buff[i] == 0x0D) || (j > 30))
+                  {
+                     write_eeprom(0x5D+i,0x0D);
+                     break;
+                  }
+                  else
+                  {
+                     SMS_Massage5[j] = RxD_Buff[i];
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                  }
+               }
+               SMS_Massage5[j] = '\0' ; // end string
+               
+               j=0;
+               i++;
+               
+               for(; ; i++,j++)
+               {
+                  restart_wdt();
+                  if((RxD_Buff[i] == 0x0D) || (j > 30))
+                  {
+                     write_eeprom(0x5D+i,0x0D);
+                     break;
+                  }
+                  else
+                  {
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                     SMS_Massage6[j] = RxD_Buff[i];
+                  }
+               }
+               SMS_Massage6[j] = '\0' ; // end string
+               
+               j=0;
+               i++;
+               
+               for(; ; i++,j++)
+               {
+                  restart_wdt();
+                  if((RxD_Buff[i] == 0x0D) || (j > 30))
+                  {
+                     write_eeprom(0x5D+i,0x0D);
+                     break;
+                  }
+                  else
+                  {
+                     SMS_Massage7[j] = RxD_Buff[i];
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                  }
+               }
+               SMS_Massage7[j] = '\0' ; // end string
+               
+               j=0;
+               i++;
+               
+               for(; ; i++,j++)
+               {
+                  restart_wdt();
+                  if((RxD_Buff[i] == 0x0D) || (j > 30))
+                  {
+                     write_eeprom(0x5D+i,0x0D);
+                     break;
+                  }
+                  else
+                  {
+                     SMS_Massage8[j] = RxD_Buff[i];
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                  }
+               }
+               SMS_Massage8[j] = '\0' ; // end string
+               
+               /////////////////////////////////////////////
+               j=0;
+               i++;
+               
+               for(; ; i++,j++)
+               {
+                  restart_wdt();
+                  if((RxD_Buff[i] == 0x0D) || (j > 30))
+                  {
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                     break;
+                  }
+                  else
+                  {
+                     SMS_Massage9[j] = RxD_Buff[i];
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                  }
+               }
+               SMS_Massage9[j] = '\0' ; // end string
+               j=0;
+               i++;
+               
+               for(; ; i++,j++)
+               {
+                  restart_wdt();
+                  if((RxD_Buff[i] == 0x0D) || (j > 30))
+                  {
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                     break;
+                  }
+                  else
+                  {
+                     SMS_Massage10[j] = RxD_Buff[i];
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                  }
+               }
+               SMS_Massage10[j] = '\0' ; // end string
+               
+               j=0;
+               i++;
+               for(; ; i++,j++)
+               {
+                  restart_wdt();
+                  if((RxD_Buff[i] == 0x0D) || (j > 30))
+                  {
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                     break;
+                  }
+                  else
+                  {
+                     SMS_Massage11[j] = RxD_Buff[i];
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                  }
+               }
+               SMS_Massage11[j] = '\0' ; // end string
+               
+               j=0;
+               i++;
+               for(; ; i++,j++)
+               {
+                  restart_wdt();
+                  if((RxD_Buff[i] == 0x0D) || (j > 30))
+                  {
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                     break;
+                  }
+                  else
+                  {
+                     SMS_Massage12[j] = RxD_Buff[i];
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                  }
+               }
+               SMS_Massage12[j] = '\0' ; // end string
+               
+               j=0;
+               i++;
+               for(; ; i++,j++)
+               {
+                  restart_wdt();
+                  if((RxD_Buff[i] == 0x0D) || (j > 30))
+                  {
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                     break;
+                  }
+                  else
+                  {
+                     SMS_Massage13[j] = RxD_Buff[i];
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                  }
+               }
+               SMS_Massage13[j] = '\0' ; // end string
+               
+               j=0;
+               i++;
+               for(; ; i++,j++)
+               {
+                  restart_wdt();
+                  if((RxD_Buff[i] == 0x0D) || (j > 30))
+                  {
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                     break;
+                  }
+                  else
+                  {
+                     SMS_Massage14[j] = RxD_Buff[i];
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                  }
+               }
+               SMS_Massage14[j] = '\0' ; // end string
+               
+               j=0;
+               i++;
+               for(; ; i++,j++)
+               {
+                  restart_wdt();
+                  if((RxD_Buff[i] == 0x0D) || (j > 30))
+                  {
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                     break;
+                  }
+                  else
+                  {
+                     SMS_Massage15[j] = RxD_Buff[i];
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                  }
+               }
+               SMS_Massage15[j] = '\0' ; // end string
+               
+               j=0;
+               i++;
+               for(; ; i++,j++)
+               {
+                  restart_wdt();
+                  if((RxD_Buff[i] == 0x0D) || (j > 30))
+                  {
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                     break;
+                  }
+                  else
+                  {
+                     SMS_Massage16[j] = RxD_Buff[i];
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                  }
+               }
+               SMS_Massage16[j] = '\0' ; // end string
+               
+               j=0;
+               i++;
+               for(; ; i++,j++)
+               {
+                  restart_wdt();
+                  if((RxD_Buff[i] == 0x0D) || (j > 30))
+                  {
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                     break;
+                  }
+                  else
+                  {
+                     SMS_Massage17[j] = RxD_Buff[i];
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                  }
+               }
+               SMS_Massage17[j] = '\0' ; // end string
+               
+               j=0;
+               i++;
+               for(; ; i++,j++)
+               {
+                  restart_wdt();
+                  if((RxD_Buff[i] == 0x0D) || (j > 30))
+                  {
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                     break;
+                  }
+                  else
+                  {
+                     SMS_Massage18[j] = RxD_Buff[i];
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                  }
+               }
+               SMS_Massage18[j] = '\0' ; // end string
+               
+               j=0;
+               i++;
+               for(; ; i++,j++)
+               {
+                  restart_wdt();
+                  if((RxD_Buff[i] == 0x0D) || (j > 30))
+                  {
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                     break;
+                  }
+                  else
+                  {
+                     SMS_Massage19[j] = RxD_Buff[i];
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                  }
+               }
+               SMS_Massage19[j] = '\0' ; // end string
+               
+               j=0;
+               i++;
+               for(; ; i++,j++)
+               {
+                  restart_wdt();
+                  if((RxD_Buff[i] == 0x0D) || (j > 30))
+                  {
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                     break;
+                  }
+                  else
+                  {
+                     SMS_Massage20[j] = RxD_Buff[i];
+                     write_eeprom(0x5D+i,RxD_Buff[i]);
+                  }
+               }
+               SMS_Massage20[j] = '\0' ; // end string
+               
+            
+               TxD_Buff[0] = Address ;         //Address
+               TxD_Buff[1] = 0x22 ;            //return function code
+   
+               CRC(TxD_Buff,2)   ;            //Cal CRC 2 byte
+   
+               TxD_Buff[2] = CRC_Hi ;
+               TxD_Buff[3] = CRC_Lo ;
+   
+               output_bit(P485ctrl,1);
+               delay_ms(10);
+   
+               putc(Txd_Buff[0]);
+               putc(Txd_Buff[1]);
+               putc(Txd_Buff[2]);
+               putc(Txd_Buff[3]);
+   
+               delay_ms(3);
+               output_bit(P485ctrl,0);
+            }
+            ////////////////////////////// WRITE Faultname //////////////////////////
 
          
                   if(RxD_Buff[1] == 0x03)///////////// READ HOLDING REGGISTER /////////////////////
@@ -2018,11 +2110,6 @@ void Modbus_Function(void)
             TxD_Buff[7] = CRC_Hi ;
             TxD_Buff[8] = CRC_Lo ;
 
-            //TxD_DataLen = 0x07 ;
-            //rs485_ctrl = 1;
-            //dmsec(4);
-            //send = 1;
-            //TI=1;
             output_bit(P485ctrl,1);
             restart_wdt();
             delay_ms(4);
@@ -2043,198 +2130,9 @@ void Modbus_Function(void)
             delay_ms(3);
             restart_wdt();
             output_bit(P485ctrl,0);
-         /*
-            //Do Read Holding Register
-            Start_Address = RxD_Buff[2] ;
-            Start_Address = (Start_Address << 8) | RxD_Buff[3] ;   //Start Address 16 bit
-            No_PointCount = RxD_Buff[4] ;
-            No_PointCount = (No_PointCount << 8) | RxD_Buff[5] ;      //No. of Point 16 bit
 
-            if(Start_Address < 0x02 && (Start_Address + No_PointCount) <= 0x03)  //Valid point 0-1
-            {
-               if(No_PointCount == 1) Data_ByteCount = 0x01 ;         // 1 point
-               else if(No_PointCount == 2) Data_ByteCount = 0x02 ;    // 2 point
-
-               if(Data_ByteCount == 0x01)
-               {
-                  if(Start_Address == 0x00)
-                  {
-                      TxD_Buff[0] = Address ;         //Address
-                  TxD_Buff[1] = 0x03 ;         //Function Code
-                  TxD_Buff[2] = Data_ByteCount ;   //Byte Count
-                  TxD_Buff[3] = Data_Buff[0] ;      //first byte Data
-                  TxD_Buff[4] = Data_Buff[1] ;      //second byte Data
-                  TxD_Buff[5] = Data_Buff[2] ;  
-
-                  CRC(TxD_Buff,6)   ;            //Cal CRC 5 Byte
-
-                  TxD_Buff[6] = CRC_Hi ;
-                  TxD_Buff[7] = CRC_Lo ;
-
-                  //TxD_DataLen = 0x07 ;
-                  //rs485_ctrl = 1;
-                  //dmsec(4);
-                  //send = 1;
-                  //TI=1;
-                  output_bit(P485ctrl,1);
-                  restart_wdt();
-                  delay_ms(4);
-                  restart_wdt();
-
-                  putc(TxD_Buff[0]) ;               //Address
-                  putc(TxD_Buff[1]) ;               //Function Code
-                  putc(TxD_Buff[2]) ;               //Byte Count
-                  putc(TxD_Buff[3]) ;
-                  putc(TxD_Buff[4]) ;
-                  putc(TxD_Buff[5]) ;
-                  putc(TxD_Buff[6]) ;
-                  putc(TxD_Buff[7]) ;
-                  //putc(TxD_Buff[8]) ;
-                  //putc(TxD_Buff[9]) ;
-
-                  restart_wdt();
-                  delay_ms(3);
-                  restart_wdt();
-                  output_bit(P485ctrl,0);
-                  }
-                  else if(Start_Address == 0x01)
-                  {
-                      TxD_Buff[0] = Address ;         //Address
-                  TxD_Buff[1] = 0x01 ;         //Function Code
-                  TxD_Buff[2] = Data_ByteCount ;   //Byte Count
-                  TxD_Buff[3] = Data_Buff[0] ;      //first byte Data
-                  TxD_Buff[4] = Data_Buff[1] ;      //second byte Data
-                  TxD_Buff[5] = Data_Buff[2] ;  
-
-                  CRC(TxD_Buff,6)   ;            //Cal CRC 5 Byte
-
-                  TxD_Buff[6] = CRC_Hi ;
-                  TxD_Buff[7] = CRC_Lo ;
-
-                  //TxD_DataLen = 0x07 ;
-                  //rs485_ctrl = 1;
-                  //dmsec(4);
-                  //send = 1;
-                  //TI=1;
-                  output_bit(P485ctrl,1);
-                  restart_wdt();
-                  delay_ms(4);
-                  restart_wdt();
-
-                  putc(TxD_Buff[0]) ;               //Address
-                  putc(TxD_Buff[1]) ;               //Function Code
-                  putc(TxD_Buff[2]) ;               //Byte Count
-                  putc(TxD_Buff[3]) ;
-                  putc(TxD_Buff[4]) ;
-                  putc(TxD_Buff[5]) ;
-                  putc(TxD_Buff[6]) ;
-                  putc(TxD_Buff[7]) ;
-                  //putc(TxD_Buff[8]) ;
-                  //putc(TxD_Buff[9]) ;
-
-                  restart_wdt();
-                  delay_ms(3);
-                  restart_wdt();
-                  output_bit(P485ctrl,0);
-                  }
-               }
-               else if(Data_ByteCount == 0x02)
-               {
-                  if(Start_Address == 0x00)
-                  {
-                      TxD_Buff[0] = Address ;         //Address
-                  TxD_Buff[1] = 0x03 ;         //Function Code
-                  TxD_Buff[2] = Data_ByteCount ;   //Byte Count
-                  TxD_Buff[3] = Data_Buff[0] ;      //first byte Data
-                  TxD_Buff[4] = Data_Buff[1] ;      //second byte Data
-                  TxD_Buff[5] = Data_Buff[2] ;  
-
-                  CRC(TxD_Buff,6)   ;            //Cal CRC 5 Byte
-
-                  TxD_Buff[6] = CRC_Hi ;
-                  TxD_Buff[7] = CRC_Lo ;
-
-                  //TxD_DataLen = 0x07 ;
-                  //rs485_ctrl = 1;
-                  //dmsec(4);
-                  //send = 1;
-                  //TI=1;
-                  output_bit(P485ctrl,1);
-                  restart_wdt();
-                  delay_ms(4);
-                  restart_wdt();
-
-                  putc(TxD_Buff[0]) ;               //Address
-                  putc(TxD_Buff[1]) ;               //Function Code
-                  putc(TxD_Buff[2]) ;               //Byte Count
-                  putc(TxD_Buff[3]) ;
-                  putc(TxD_Buff[4]) ;
-                  putc(TxD_Buff[5]) ;
-                  putc(TxD_Buff[6]) ;
-                  putc(TxD_Buff[7]) ;
-                  //putc(TxD_Buff[8]) ;
-                  //putc(TxD_Buff[9]) ;
-
-                  restart_wdt();
-                  delay_ms(3);
-                  restart_wdt();
-                  output_bit(P485ctrl,0);
-                  }
-               }
-            }
-            else
-            {
-               //invalid parameter
-               TxD_Buff[0] = Address ;         //Address
-               TxD_Buff[1] = 0x81 ;         //Function Code
-               TxD_Buff[2] = 0x02 ;         //illegal data address
-
-               CRC(TxD_Buff,3)   ;            //Cal CRC 3 Byte
-
-               TxD_Buff[3] = CRC_Hi ;
-               TxD_Buff[4] = CRC_Lo ;
-
-               output_bit(P485ctrl,1);
-               delay_ms(10);
-
-               putc(Txd_Buff[0]);
-               putc(Txd_Buff[1]);
-               putc(Txd_Buff[2]);
-               putc(Txd_Buff[3]);
-               putc(Txd_Buff[4]);
-
-               delay_ms(3);
-               output_bit(P485ctrl,0);
-            }
-            */
          }
        
-       /*-----JACK Comment 18/6/58----------//
-         else
-         {
-            //Invalid function
-            TxD_Buff[0] = Address ;         //Address
-            TxD_Buff[1] = 0x81 ;         //Function Code
-            TxD_Buff[2] = 0x01 ;         //illegal function
-
-            CRC(TxD_Buff,3)   ;            //Cal CRC 3 Byte
-
-            TxD_Buff[3] = CRC_Hi ;
-            TxD_Buff[4] = CRC_Lo ;
-
-            output_bit(P485ctrl,1);
-            delay_ms(10);
-
-            putc(Txd_Buff[0]);
-            putc(Txd_Buff[1]);
-            putc(Txd_Buff[2]);
-            putc(Txd_Buff[3]);
-            putc(Txd_Buff[4]);
-
-            delay_ms(3);
-            output_bit(P485ctrl,0);
-         }
-       *///-----JACK Comment----------//
       }  
 
       Send_check_Time = 500; //5 Second
@@ -2720,61 +2618,7 @@ void Read_Input(void)
                {
                   ReleaseTime[i] = 0;
                }
-                  /*
-                  ReleaseTime[i] = 0;
-                  switch(i)
-                  {
-                      case 1:
-                         Input.B1 = 0; 
-                      break;
-                      case 2:
-                         Input.B2 = 0; 
-                      break;
-                      case 3:
-                         Input.B3 = 0; 
-                      break;
-                      case 4:
-                         Input.B4 = 0; 
-                      break;
-                      case 5:
-                         Input.B5 = 0; 
-                      break;
-                      case 6:
-                         Input.B6 = 0; 
-                      break;
-                      case 7:
-                         Input.B7 = 0; 
-                      break;
-                      case 8:
-                         Input.B8 = 0; 
-                      break;
-                      case 9:
-                         Input.B9 = 0; 
-                      break;
-                      case 10:
-                         Input.B10 = 0; 
-                      break;
-                      case 11:
-                         Input.B11 = 0; 
-                      break;
-                      case 12:
-                         Input.B12 = 0; 
-                      break;
-                      case 13:
-                         Input.B13 = 0; 
-                      break;
-                      case 14:
-                         Input.B14 = 0; 
-                      break;
-                      case 15:
-                         Input.B15 = 0; 
-                      break;
-                      case 16:
-                         Input.B16 = 0; 
-                      break;
-                             
-                  }
-                  */
+
              }
           }
       }
@@ -2842,106 +2686,7 @@ void Read_Input(void)
       Input17_24 &= 0x0F;
       Input25_32 = 0x00;
       //+++++++++++++++++++++++++++++++++++++++++++
-   //}
- 
 
-/*
- ////////////////////////////////////////////////////////////////
- //////////////////////////////////////////////////////////////////
- ///////////////////////////////////////////////////////////////////
- //////////////////////////////////////////////////////////////////////
- ////////////////////////////////////////////////////////////////////////
-   //if(NoOfPoint >= 10)
-   //{
-      // if(NoOfPoint >= 20)
-   //{   
-      MCP23s17_Ip_dat = IO_INPUT_A(IO_DEVICE_0);
-          
-      if (AutoTestFlag)  // TEST FROM MODBUS
-      {
-         MCP23s17_Ip_dat = ~MCP23s17_Ip_dat;         
-      }
-      
-      Inputt.B11 = MCP23s17_Ip_dat;
-      Inputt.B12 = MCP23s17_Ip_dat >> 1;
-      Inputt.B13 = MCP23s17_Ip_dat >> 2;
-      Inputt.B14 = MCP23s17_Ip_dat >> 3;
-      Inputt.B15 = MCP23s17_Ip_dat >> 4;
-      Inputt.B16 = MCP23s17_Ip_dat >> 5;
-      Inputt.B17 = MCP23s17_Ip_dat >> 6;
-      Inputt.B18 = MCP23s17_Ip_dat >> 7;
-
-      Input11_18 = 0x00;
-      Input11_18 = Input1_8 | ~Inputt.B18;
-      Input11_18 = (Input1_8 << 1) | ~Inputt.B17;
-      Input11_18 = (Input1_8 << 1) | ~Inputt.B16;
-      Input11_18 = (Input1_8 << 1) | ~Inputt.B15;
-      Input11_18 = (Input1_8 << 1) | ~Inputt.B14;
-      Input11_18 = (Input1_8 << 1) | ~Inputt.B13;
-      Input11_18 = (Input1_8 << 1) | ~Inputt.B12;
-      Input11_18 = (Input1_8 << 1) | ~Inputt.B11;
-    
-      MCP23s17_Ip_dat = IO_INPUT_B(IO_DEVICE_0);
-      
-      if (AutoTestFlag)  // TEST FROM MODBUS
-      {
-         MCP23s17_Ip_dat = ~MCP23s17_Ip_dat;
-      }
-      
-      Inputt.B19 = MCP23s17_Ip_dat;
-      Inputt.B20 = MCP23s17_Ip_dat >> 1;
-      
-
-      Input19_20 = 0x00;
-      Input19_20 = Input9_10 | ~Inputt.B20;
-      Input19_20 = (Input9_10 << 1) | ~Inputt.B19;
-   //}
-   
-      MCP23s17_Ip_dat = IO_INPUT_A(IO_DEVICE_1);
-          
-      if (AutoTestFlag)  // TEST FROM MODBUS
-      {
-         MCP23s17_Ip_dat = ~MCP23s17_Ip_dat;
-         
-      }
-      
-      Inputt.B1 = MCP23s17_Ip_dat;
-      Inputt.B2 = MCP23s17_Ip_dat >> 1;
-      Inputt.B3 = MCP23s17_Ip_dat >> 2;
-      Inputt.B4 = MCP23s17_Ip_dat >> 3;
-      Inputt.B5 = MCP23s17_Ip_dat >> 4;
-      Inputt.B6 = MCP23s17_Ip_dat >> 5;
-      Inputt.B7 = MCP23s17_Ip_dat >> 6;
-      Inputt.B8 = MCP23s17_Ip_dat >> 7;
-
-      Input1_8 = 0x00;
-      Input1_8 = Input1_8 | ~Inputt.B8;
-      Input1_8 = (Input1_8 << 1) | ~Inputt.B7;
-      Input1_8 = (Input1_8 << 1) | ~Inputt.B6;
-      Input1_8 = (Input1_8 << 1) | ~Inputt.B5;
-      Input1_8 = (Input1_8 << 1) | ~Inputt.B4;
-      Input1_8 = (Input1_8 << 1) | ~Inputt.B3;
-      Input1_8 = (Input1_8 << 1) | ~Inputt.B2;
-      Input1_8 = (Input1_8 << 1) | ~Inputt.B1;
-    
-      MCP23s17_Ip_dat = IO_INPUT_B(IO_DEVICE_1);
-      
-      if (AutoTestFlag)  // TEST FROM MODBUS
-      {
-         MCP23s17_Ip_dat = ~MCP23s17_Ip_dat;
-      }
-      
-      Inputt.B9 = MCP23s17_Ip_dat;
-      Inputt.B10 = MCP23s17_Ip_dat >> 1;
-      
-
-      Input9_10 = 0x00;
-      Input9_10 = Input9_10 | ~Inputt.B10;
-      Input9_10 = (Input9_10 << 1) | ~Inputt.B9;
-      //+++++++++++++++++++++++++++++++++++++++++++
-   //}
-   
-*/  
 }
 /*----------------------------------------------------------------------------*/
 
@@ -3262,10 +3007,403 @@ void Read_Config(void)
    FaultDelayTime[19] = read_eeprom(0x30);
    FaultDelayTime[20] = read_eeprom(0x31);
    
-   //BuadRate = read_eeprom(0x61);         //Buad Rate
-   //NoOfbit = read_eeprom(0x62);
-   //Parity = read_eeprom(0x63);
-   //Stopbit = read_eeprom(0x64);
+   unsigned int  a = 0; 
+   unsigned char  phonenum;
+   for(; ; a++)
+   {
+      restart_wdt();
+      phonenum = read_eeprom(0x32 + a);
+      if((phonenum == 0x0D) || (a > 15))
+      {
+         sms_phonenumber[a] =  '\0';
+         write_eeprom(0x32+a,phonenum);
+         break;
+      }
+      else
+      {
+         sms_phonenumber[a] = phonenum;
+      }
+   }
+   
+      
+   int16  i =3,j=0,k=0 , buff;
+   for(; ; i++,j++)
+   {
+      restart_wdt();
+      buff = read_eeprom(0x5D+i);
+      
+      if((buff == 0x0D)|| (j>30))
+      {
+         SMS_Massage1[j] = '\0' ; // end string
+         break;
+      }
+      else
+      {
+         SMS_Massage1[j] = buff;  
+      }
+   }
+   
+   i++;
+   j=0;
+   
+   for(; ; i++,j++)
+   {
+      restart_wdt();
+      buff = read_eeprom(0x5D+i);
+      
+      if((buff == 0x0D) || (j>30))
+      {
+         SMS_Massage2[j] = '\0' ; // end string
+         break;
+      }
+      else
+      {
+         SMS_Massage2[j] = buff;         
+      }
+   }
+   
+   i++;
+   j=0;
+   
+   for(; ; i++,j++)
+   {
+      restart_wdt();
+      buff = read_eeprom(0x5D+i);
+      
+      if((buff == 0x0D) || (j>30))
+      {
+         SMS_Massage3[j] = '\0' ; // end string
+         break;
+      }
+      else
+      {
+         SMS_Massage3[j] = buff;         
+      }
+   }
+   
+   i++;
+   j=0;
+   
+   for(; ; i++,j++)
+   {
+      restart_wdt();
+      buff = read_eeprom(0x5D+i);
+      
+      if((buff == 0x0D) || (j>30))
+      {
+         SMS_Massage4[j] = '\0' ; // end string
+         break;
+      }
+      else
+      {
+         SMS_Massage4[j] = buff;         
+      }
+   }
+   
+   i++;
+   j=0;
+   
+   for(; ; i++,j++)
+   {
+      restart_wdt();
+      buff = read_eeprom(0x5D+i);
+      
+      if((buff == 0x0D) || (j>30))
+      {
+         SMS_Massage5[j] = '\0' ; // end string
+         break;
+      }
+      else
+      {
+         SMS_Massage5[j] = buff;         
+      }
+   }
+   
+   i++;
+   j=0;
+   
+   for(; ; i++,j++)
+   {
+      restart_wdt();
+      buff = read_eeprom(0x5D+i);
+      
+      if((buff == 0x0D) || (j>30))
+      {
+         SMS_Massage6[j] = '\0' ; // end string
+         break;
+      }
+      else
+      {
+         SMS_Massage6[j] = buff;         
+      }
+   }
+   
+   i++;
+   j=0;
+   
+   for(; ; i++,j++)
+   {
+      restart_wdt();
+      buff = read_eeprom(0x5D+i);
+      
+      if((buff == 0x0D) || (j>30))
+      {
+         SMS_Massage7[j] = '\0' ; // end string
+         break;
+      }
+      else
+      {
+         SMS_Massage7[j] = buff;         
+      }
+   }
+   
+   i++;
+   j=0;
+   
+   for(; ; i++,j++)
+   {
+      restart_wdt();
+      buff = read_eeprom(0x5D+i);
+      
+      if((buff == 0x0D) || (j>30))
+      {
+         SMS_Massage8[j] = '\0' ; // end string
+         break;
+      }
+      else
+      {
+         SMS_Massage8[j] = buff;        
+      }
+   }
+   
+   i++;
+   j=0;
+   
+   for(; ; i++,j++)
+   {
+      restart_wdt();
+      buff = read_eeprom(0x5D+i);
+      
+      if((buff == 0x0D) || (j>30))
+      {
+         SMS_Massage9[j] = '\0' ; // end string
+         break;
+      }
+      else
+      {
+         SMS_Massage9[j] = buff;         
+      }
+   }
+   
+   i++;
+   j=0;
+   
+   for(; ; i++,j++)
+   {
+      restart_wdt();
+      buff = read_eeprom(0x5D+i);
+      
+      if((buff == 0x0D) || (j>30))
+      {
+         SMS_Massage10[j] = '\0' ; // end string
+         break;
+      }
+      else
+      {
+         SMS_Massage10[j] = buff;        
+      }
+   }
+      
+   i++;
+   j=0;
+   
+   for(; ; i++,j++)
+   {
+      restart_wdt();
+      buff = read_eeprom(0x5D+i);
+      
+      if((buff == 0x0D) || (j>30))
+      {
+         SMS_Massage11[j] = '\0' ; // end string
+         break;
+      }
+      else
+      {
+         SMS_Massage11[j] = buff;        
+      }
+   }
+      
+   i++;
+   j=0;
+   
+   for(; ; i++,j++)
+   {
+      restart_wdt();
+      buff = read_eeprom(0x5D+i);
+      
+      if((buff == 0x0D) || (j>30))
+      {
+         SMS_Massage12[j] = '\0' ; // end string
+         break;
+      }
+      else
+      {
+         SMS_Massage12[j] = buff;         
+      }
+   }
+      
+   i++;
+   j=0;
+   
+   for(; ; i++,j++)
+   {
+      restart_wdt();
+      buff = read_eeprom(0x5D+i);
+      
+      if((buff == 0x0D) || (j>30))
+      {
+         SMS_Massage13[j] = '\0' ; // end string
+         break;
+      }
+      else
+      {
+         SMS_Massage13[j] = buff;       
+      }
+   }
+      
+   i++;
+   j=0;
+   
+   for(; ; i++,j++)
+   {
+      restart_wdt();
+      buff = read_eeprom(0x5D+i);
+      
+      if((buff == 0x0D) || (j>30))
+      {
+         SMS_Massage14[j] = '\0' ; // end string
+         break;
+      }
+      else
+      {
+         SMS_Massage14[j] = buff;        
+      }
+   }
+      
+   i++;
+   j=0;
+   
+   for(; ; i++,j++)
+   {
+      restart_wdt();
+      buff = read_eeprom(0x5D+i);
+      
+      if((buff == 0x0D) || (j>30))
+      {
+         SMS_Massage15[j] = '\0' ; // end string
+         break;
+      }
+      else
+      {
+         SMS_Massage15[j] = buff;         
+      }
+   }
+      
+   i++;
+   j=0;
+   
+   for(; ; i++,j++)
+   {
+      restart_wdt();
+      buff = read_eeprom(0x5D+i);
+      
+      if((buff == 0x0D) || (j>30))
+      {
+         SMS_Massage16[j] = '\0' ; // end string
+         break;
+      }
+      else
+      {
+         SMS_Massage16[j] = buff;         
+      }
+   }
+   
+   i++;
+   j=0;
+   
+   for(; ; i++,j++)
+   {
+      restart_wdt();
+      buff = read_eeprom(0x5D+i);
+      
+      if((buff == 0x0D) || (j>30))
+      {
+         SMS_Massage17[j] = '\0' ; // end string
+         break;
+      }
+      else
+      {
+         SMS_Massage17[j] = buff;         
+      }
+   }
+   
+   i++;
+   j=0;
+   
+   for(; ; i++,j++)
+   {
+      restart_wdt();
+      buff = read_eeprom(0x5D+i);
+      
+      if((buff == 0x0D) || (j>30))
+      {
+         SMS_Massage18[j] = '\0' ; // end string
+         break;
+      }
+      else
+      {
+         SMS_Massage18[j] = buff;         
+      }
+   }
+   
+   i++;
+   j=0;
+   
+   for(; ; i++,j++)
+   {
+      restart_wdt();
+      buff = read_eeprom(0x5D+i);
+      
+      if((buff == 0x0D) || (j>30))
+      {
+         SMS_Massage19[j] = '\0' ; // end string
+         break;
+      }
+      else
+      {
+         SMS_Massage19[j] = buff;        
+      }
+   }
+   
+   i++;
+   j=0;
+   
+   for(; ; i++,j++)
+   {
+      restart_wdt();
+      buff = read_eeprom(0x5D+i);
+      
+      if((buff == 0x0D) || (j>30))
+      {
+         SMS_Massage20[j] = '\0' ; // end string
+         break;
+      }
+      else
+      {
+         SMS_Massage20[j] = buff;         
+      }
+   }
+
 }
 //////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -3454,6 +3592,25 @@ void Anal_Function(void)
                   else output_bit(Pbell,OnRelay);                          //Bell
                }
             }
+            // SMS Sending 
+            if((SendSMS.B1 ==0) && (functointest_f ==0) && (Ack.B1 ==0))
+            {
+               fprintf(CH2,"AT+CMGF=1"); 
+               putc('\n',CH2);
+               delay_ms(10);
+            
+               SendSMS.B1 =1;
+               fprintf(CH2,"AT+CMGS=\"");
+               fprintf(CH2,sms_phonenumber);
+               
+               fprintf(CH2,"\"");
+               putc('\n',CH2);
+               delay_ms(50);
+              
+              fprintf(CH2,SMS_Massage1);
+              putc('\n',CH2);
+              putc(26,CH2);
+            }
         }
       }
       else if(FaultType.B1 == 1) Ack.B1 = 0;
@@ -3463,10 +3620,31 @@ void Anal_Function(void)
       if((Inputt.B1 ^ InputType.B1) == 1)
       {
          Output.B1 = 0;
+         // SMS Sending 
+         if((SendSMS.B1 ==0) && (functointest_f ==0) && (Ack.B1 ==0))
+         {
+            fprintf(CH2,"AT+CMGF=1"); 
+            putc('\n',CH2);
+            delay_ms(10);
+         
+            SendSMS.B1 =1;
+            fprintf(CH2,"AT+CMGS=\"");
+            fprintf(CH2,sms_phonenumber);
+            
+            fprintf(CH2,"\"");
+            putc('\n',CH2);
+            delay_ms(50);
+           
+           fprintf(CH2,SMS_Massage1);
+           putc('\n',CH2);
+           putc(26,CH2);
+         }
       }
       else
       {
          Output.B1 = 1;
+         SendSMS.B1 =0;
+         functointest_f =0;
       }
    }
 ///////////////////////////////////////////////////////////////////////////////
@@ -3507,6 +3685,25 @@ void Anal_Function(void)
                   else output_bit(Pbell,OnRelay);                          //Bell
                }
             }
+            // SMS Sending   
+            if((SendSMS.B2 ==0)&& (functointest_f ==0) && (Ack.B2 ==0))
+            {
+               fprintf(CH2,"AT+CMGF=1"); 
+               putc('\n',CH2);
+               delay_ms(10);
+                
+               SendSMS.B2 =1;
+               fprintf(CH2,"AT+CMGS=\"");
+               fprintf(CH2,sms_phonenumber);
+               
+               fprintf(CH2,"\"");
+               putc('\n',CH2);
+               delay_ms(50);
+               
+              fprintf(CH2,SMS_Massage2);
+              putc('\n',CH2);
+             putc(26,CH2);
+            }
           }
 
       }
@@ -3517,10 +3714,31 @@ void Anal_Function(void)
       if((Inputt.B2 ^ InputType.B2) == 1)
       {
          Output.B2 = 0;
+         // SMS Sending   
+         if((SendSMS.B2 ==0)&& (functointest_f ==0) && (Ack.B2 ==0))
+         {
+            fprintf(CH2,"AT+CMGF=1"); 
+            putc('\n',CH2);
+            delay_ms(10);
+             
+            SendSMS.B2 =1;
+            fprintf(CH2,"AT+CMGS=\"");
+            fprintf(CH2,sms_phonenumber);
+            
+            fprintf(CH2,"\"");
+            putc('\n',CH2);
+            delay_ms(50);
+            
+           fprintf(CH2,SMS_Massage2);
+           putc('\n',CH2);
+          putc(26,CH2);
+         }
       }
       else
       {
          Output.B2 = 1;
+         SendSMS.B2 =0;
+         functointest_f =0;
       }
    }
 ///////////////////////////////////////////////////////////////////////////////
@@ -3561,6 +3779,25 @@ void Anal_Function(void)
                   else output_bit(Pbell,OnRelay);                          //Bell
                }
             }
+            // SMS Sending   
+            if((SendSMS.B3 ==0)&& (functointest_f ==0) && (Ack.B3 ==0))
+            {
+               fprintf(CH2,"AT+CMGF=1"); 
+               putc('\n',CH2);
+               delay_ms(10);
+               
+               SendSMS.B3 =1;
+               fprintf(CH2,"AT+CMGS=\"");
+               fprintf(CH2,sms_phonenumber);
+               
+               fprintf(CH2,"\"");
+               putc('\n',CH2);
+               delay_ms(50);
+              
+              fprintf(CH2,SMS_Massage3);
+              putc('\n',CH2);
+             putc(26,CH2);
+            }
           }
 
       }
@@ -3571,10 +3808,31 @@ void Anal_Function(void)
       if((Inputt.B3 ^ InputType.B3) == 1)
       {
          Output.B3 = 0;
+         // SMS Sending   
+         if((SendSMS.B3 ==0)&& (functointest_f ==0) && (Ack.B3 ==0))
+         {
+            fprintf(CH2,"AT+CMGF=1"); 
+            putc('\n',CH2);
+            delay_ms(10);
+            
+            SendSMS.B3 =1;
+            fprintf(CH2,"AT+CMGS=\"");
+            fprintf(CH2,sms_phonenumber);
+            
+            fprintf(CH2,"\"");
+            putc('\n',CH2);
+            delay_ms(50);
+           
+           fprintf(CH2,SMS_Massage3);
+           putc('\n',CH2);
+          putc(26,CH2);
+         }
       }
       else
       {
          Output.B3 = 1;
+         SendSMS.B3 =0;
+         functointest_f =0;
       }
    }
 ///////////////////////////////////////////////////////////////////////////////
@@ -3615,6 +3873,25 @@ void Anal_Function(void)
                   else output_bit(Pbell,OnRelay);                          //Bell
                }
             }
+            // SMS Sending   
+            if((SendSMS.B4 ==0)&& (functointest_f ==0) && (Ack.B4 ==0))
+            {
+               fprintf(CH2,"AT+CMGF=1"); 
+               putc('\n',CH2);
+               delay_ms(10);
+               
+               SendSMS.B4 =1;
+               fprintf(CH2,"AT+CMGS=\"");
+               fprintf(CH2,sms_phonenumber);
+            
+               fprintf(CH2,"\"");
+               putc('\n',CH2);
+               delay_ms(50);
+              
+              fprintf(CH2,SMS_Massage4);
+              putc('\n',CH2);
+              putc(26,CH2);
+            }
           }
       }
       else if(FaultType.B4 == 1) Ack.B4 = 0;
@@ -3624,10 +3901,31 @@ void Anal_Function(void)
       if((Inputt.B4 ^ InputType.B4) == 1)
       {
          Output.B4 = 0;
+         // SMS Sending   
+         if((SendSMS.B4 ==0)&& (functointest_f ==0) && (Ack.B4 ==0))
+         {
+            fprintf(CH2,"AT+CMGF=1"); 
+            putc('\n',CH2);
+            delay_ms(10);
+            
+            SendSMS.B4 =1;
+            fprintf(CH2,"AT+CMGS=\"");
+            fprintf(CH2,sms_phonenumber);
+         
+            fprintf(CH2,"\"");
+            putc('\n',CH2);
+            delay_ms(50);
+           
+           fprintf(CH2,SMS_Massage4);
+           putc('\n',CH2);
+          putc(26,CH2);
+         }
       }
       else
       {
          Output.B4 = 1;
+         SendSMS.B4 =0;
+         functointest_f =0;
       }
    }
 ///////////////////////////////////////////////////////////////////////////////
@@ -3668,6 +3966,25 @@ void Anal_Function(void)
                   else output_bit(Pbell,OnRelay);                          //Bell
                }
             }
+            // SMS Sending   
+            if((SendSMS.B5 ==0)&& (functointest_f ==0) && (Ack.B5 ==0))
+            {
+               fprintf(CH2,"AT+CMGF=1"); 
+               putc('\n',CH2);
+               delay_ms(10);
+               
+               SendSMS.B5 =1;
+               fprintf(CH2,"AT+CMGS=\"");
+               fprintf(CH2,sms_phonenumber);
+               
+               fprintf(CH2,"\"");
+               putc('\n',CH2);
+               delay_ms(50);
+              
+              fprintf(CH2,SMS_Massage5);
+              putc('\n',CH2);
+             putc(26,CH2);
+            }
           }
 
       }
@@ -3678,10 +3995,31 @@ void Anal_Function(void)
       if((Inputt.B5 ^ InputType.B5) == 1)
       {
          Output.B5 = 0;
+         // SMS Sending   
+         if((SendSMS.B5 ==0)&& (functointest_f ==0) && (Ack.B5 ==0))
+         {
+            fprintf(CH2,"AT+CMGF=1"); 
+            putc('\n',CH2);
+            delay_ms(10);
+            
+            SendSMS.B5 =1;
+            fprintf(CH2,"AT+CMGS=\"");
+            fprintf(CH2,sms_phonenumber);
+            
+            fprintf(CH2,"\"");
+            putc('\n',CH2);
+            delay_ms(50);
+           
+           fprintf(CH2,SMS_Massage5);
+           putc('\n',CH2);
+          putc(26,CH2);
+         }
       }
       else
       {
          Output.B5 = 1;
+         SendSMS.B5 =0;
+         functointest_f =0;
       }
    }
 ///////////////////////////////////////////////////////////////////////////////
@@ -3722,6 +4060,25 @@ void Anal_Function(void)
                   else output_bit(Pbell,OnRelay);                          //Bell
                }
             }
+            // SMS Sending   
+            if((SendSMS.B6 ==0)&& (functointest_f ==0) && (Ack.B6 ==0))
+            {
+               fprintf(CH2,"AT+CMGF=1"); 
+               putc('\n',CH2);
+               delay_ms(10);
+               
+               SendSMS.B6 =1;
+               fprintf(CH2,"AT+CMGS=\"");
+               fprintf(CH2,sms_phonenumber);
+               
+               fprintf(CH2,"\"");
+               putc('\n',CH2);
+               delay_ms(50);
+              
+              fprintf(CH2,SMS_Massage6);
+              putc('\n',CH2);
+              putc(26,CH2);
+            }
           }
       }
       else if(FaultType.B6 == 1) Ack.B6 = 0;
@@ -3731,10 +4088,31 @@ void Anal_Function(void)
       if((Inputt.B6 ^ InputType.B6) == 1)
       {
          Output.B6 = 0;
+         // SMS Sending   
+         if((SendSMS.B6 ==0)&& (functointest_f ==0) && (Ack.B6 ==0))
+         {
+            fprintf(CH2,"AT+CMGF=1"); 
+            putc('\n',CH2);
+            delay_ms(10);
+            
+            SendSMS.B6 =1;
+            fprintf(CH2,"AT+CMGS=\"");
+            fprintf(CH2,sms_phonenumber);
+            
+            fprintf(CH2,"\"");
+            putc('\n',CH2);
+            delay_ms(50);
+           
+           fprintf(CH2,SMS_Massage6);
+           putc('\n',CH2);
+           putc(26,CH2);
+         }
       }
       else
       {
          Output.B6 = 1;
+         SendSMS.B6 =0;
+         functointest_f =0;
       }
    }
 ///////////////////////////////////////////////////////////////////////////////
@@ -3775,6 +4153,25 @@ void Anal_Function(void)
                   else output_bit(Pbell,OnRelay);                          //Bell
                }
             }
+            // SMS Sending   
+            if((SendSMS.B7 ==0)&& (functointest_f ==0) && (Ack.B7 ==0))
+            {
+               fprintf(CH2,"AT+CMGF=1"); 
+               putc('\n',CH2);
+               delay_ms(10);
+               
+               SendSMS.B7 =1;
+               fprintf(CH2,"AT+CMGS=\"");
+               fprintf(CH2,sms_phonenumber);
+               
+               fprintf(CH2,"\"");
+               putc('\n',CH2);
+               delay_ms(50);
+              
+              fprintf(CH2,SMS_Massage7);  
+              putc('\n',CH2);
+             putc(26,CH2);
+            }
           }
 
       }
@@ -3785,10 +4182,31 @@ void Anal_Function(void)
       if((Inputt.B7 ^ InputType.B7) == 1)
       {
          Output.B7 = 0;
+         // SMS Sending   
+         if((SendSMS.B7 ==0)&& (functointest_f ==0) && (Ack.B7 ==0))
+         {
+            fprintf(CH2,"AT+CMGF=1"); 
+            putc('\n',CH2);
+            delay_ms(10);
+            
+            SendSMS.B7 =1;
+            fprintf(CH2,"AT+CMGS=\"");
+            fprintf(CH2,sms_phonenumber);
+            
+            fprintf(CH2,"\"");
+            putc('\n',CH2);
+            delay_ms(50);
+           
+           fprintf(CH2,SMS_Massage7);  
+           putc('\n',CH2);
+          putc(26,CH2);
+         }
       }
       else
       {
          Output.B7 = 1;
+         SendSMS.B7 =0;
+         functointest_f =0;
       }
    }
 ///////////////////////////////////////////////////////////////////////////////
@@ -3829,6 +4247,25 @@ void Anal_Function(void)
                   else output_bit(Pbell,OnRelay);                          //Bell
                }
             }
+                  // SMS Sending   
+         if((SendSMS.B8 ==0)&& (functointest_f ==0) && (Ack.B8 ==0))
+         {
+            fprintf(CH2,"AT+CMGF=1"); 
+            putc('\n',CH2);
+            delay_ms(10);
+            
+            SendSMS.B8 =1;
+            fprintf(CH2,"AT+CMGS=\"");
+            fprintf(CH2,sms_phonenumber);
+            
+            fprintf(CH2,"\"");
+            putc('\n',CH2);
+            delay_ms(50);
+           
+           printf(SMS_Massage8);  
+           putc('\n',CH2);
+          putc(26,CH2);
+         }
        }
 
       }
@@ -3839,10 +4276,31 @@ void Anal_Function(void)
       if((Inputt.B8 ^ InputType.B8) == 1)
       {
          Output.B8 = 0;
+               // SMS Sending   
+         if((SendSMS.B8 ==0)&& (functointest_f ==0) && (Ack.B8 ==0))
+         {
+            fprintf(CH2,"AT+CMGF=1"); 
+            putc('\n',CH2);
+            delay_ms(10);
+            
+            SendSMS.B8 =1;
+            fprintf(CH2,"AT+CMGS=\"");
+            fprintf(CH2,sms_phonenumber);
+            
+            fprintf(CH2,"\"");
+            putc('\n',CH2);
+            delay_ms(50);
+           
+           printf(SMS_Massage8);  
+           putc('\n',CH2);
+          putc(26,CH2);
+         }
       }
       else
       {
          Output.B8 = 1;
+         SendSMS.B8 =0;
+         functointest_f =0;
       }
    }
 ///////////////////////////////////////////////////////////////////////////////
@@ -3883,6 +4341,25 @@ void Anal_Function(void)
                   else output_bit(Pbell,OnRelay);                          //Bell
                }
             }
+            // SMS Sending   
+            if((SendSMS.B9 ==0)&& (functointest_f ==0) && (Ack.B9 ==0))
+            {
+               fprintf(CH2,"AT+CMGF=1"); 
+               putc('\n',CH2);
+               delay_ms(10);
+               
+               SendSMS.B9 =1;
+               fprintf(CH2,"AT+CMGS=\"");
+               fprintf(CH2,sms_phonenumber);
+               
+               fprintf(CH2,"\"");
+               putc('\n',CH2);
+               delay_ms(50);
+              
+              printf(SMS_Massage9);  
+              putc('\n',CH2);
+              putc(26,CH2);
+            }
           }
 
       }
@@ -3893,10 +4370,31 @@ void Anal_Function(void)
       if((Inputt.B9 ^ InputType.B9) == 1)
       {
          Output.B9 = 0;
+         // SMS Sending   
+         if((SendSMS.B9 ==0)&& (functointest_f ==0) && (Ack.B9 ==0))
+         {
+            fprintf(CH2,"AT+CMGF=1"); 
+            putc('\n',CH2);
+            delay_ms(10);
+            
+            SendSMS.B9 =1;
+            fprintf(CH2,"AT+CMGS=\"");
+            fprintf(CH2,sms_phonenumber);
+            
+            fprintf(CH2,"\"");
+            putc('\n',CH2);
+            delay_ms(50);
+           
+           printf(SMS_Massage9);  
+           putc('\n',CH2);
+           putc(26,CH2);
+         }
       }
       else
       {
          Output.B9 = 1;
+         SendSMS.B9 =0;
+         functointest_f =0;
       }
    }
 ///////////////////////////////////////////////////////////////////////////////
@@ -3937,6 +4435,25 @@ void Anal_Function(void)
                   else output_bit(Pbell,OnRelay);                          //Bell
                }
             }
+            // SMS Sending   
+            if((SendSMS.B10 ==0)&& (functointest_f ==0) && (Ack.B10 ==0))
+            {
+               fprintf(CH2,"AT+CMGF=1"); 
+               putc('\n',CH2);
+               delay_ms(10);
+               
+               SendSMS.B10 =1;
+               fprintf(CH2,"AT+CMGS=\"");
+               fprintf(CH2,sms_phonenumber);
+               
+               fprintf(CH2,"\"");
+               putc('\n',CH2);
+               delay_ms(50);
+              
+              printf(SMS_Massage10);  
+              putc('\n',CH2);
+              putc(26,CH2);
+            }
           }
 
       }
@@ -3947,10 +4464,31 @@ void Anal_Function(void)
       if((Inputt.B10 ^ InputType.B10) == 1)
       {
          Output.B10 = 0;
+         // SMS Sending   
+         if((SendSMS.B10 ==0)&& (functointest_f ==0) && (Ack.B10 ==0))
+         {
+            fprintf(CH2,"AT+CMGF=1"); 
+            putc('\n',CH2);
+            delay_ms(10);
+            
+            SendSMS.B10 =1;
+            fprintf(CH2,"AT+CMGS=\"");
+            fprintf(CH2,sms_phonenumber);
+            
+            fprintf(CH2,"\"");
+            putc('\n',CH2);
+            delay_ms(50);
+           
+           printf(SMS_Massage10);  
+           putc('\n',CH2);
+           putc(26,CH2);
+         }
       }
       else
       {
          Output.B10 = 1;
+         SendSMS.B10 =0;
+         functointest_f =0;
       }
    }
 //}
@@ -3996,6 +4534,25 @@ void Anal_Function(void)
                   else output_bit(Pbell,OnRelay);                          //Bell
                }
             }
+            // SMS Sending   
+            if((SendSMS.B11 ==0)&& (functointest_f ==0) && (Ack.B11 ==0))
+            {
+               fprintf(CH2,"AT+CMGF=1"); 
+               putc('\n',CH2);
+               delay_ms(10);
+               
+               SendSMS.B11 =1;
+               fprintf(CH2,"AT+CMGS=\"");
+               fprintf(CH2,sms_phonenumber);
+               
+               fprintf(CH2,"\"");
+               putc('\n',CH2);
+               delay_ms(50);
+              
+              printf(SMS_Massage11);  
+              putc('\n',CH2);
+              putc(26,CH2);
+            }
           }
 
       }
@@ -4006,10 +4563,31 @@ void Anal_Function(void)
       if((Inputt.B11 ^ InputType.B11) == 1)
       {
          Output.B11 = 0;
+         // SMS Sending   
+         if((SendSMS.B11 ==0)&& (functointest_f ==0) && (Ack.B11 ==0))
+         {
+            fprintf(CH2,"AT+CMGF=1"); 
+            putc('\n',CH2);
+            delay_ms(10);
+            
+            SendSMS.B11 =1;
+            fprintf(CH2,"AT+CMGS=\"");
+            fprintf(CH2,sms_phonenumber);
+            
+            fprintf(CH2,"\"");
+            putc('\n',CH2);
+            delay_ms(50);
+           
+           printf(SMS_Massage11);  
+           putc('\n',CH2);
+           putc(26,CH2);
+         }
       }
       else
       {
          Output.B11 = 1;
+         SendSMS.B11 =0;
+         functointest_f =0;
       }
    }
 ///////////////////////////////////////////////////////////////////////////////
@@ -4050,6 +4628,25 @@ void Anal_Function(void)
                   else output_bit(Pbell,OnRelay);                          //Bell
                }
             }
+            // SMS Sending   
+            if((SendSMS.B12 ==0)&& (functointest_f ==0) && (Ack.B12 ==0))
+            {
+               fprintf(CH2,"AT+CMGF=1"); 
+               putc('\n',CH2);
+               delay_ms(10);
+               
+               SendSMS.B12 =1;
+               fprintf(CH2,"AT+CMGS=\"");
+               fprintf(CH2,sms_phonenumber);
+               
+               fprintf(CH2,"\"");
+               putc('\n',CH2);
+               delay_ms(50);
+              
+              printf(SMS_Massage12);  
+              putc('\n',CH2);
+              putc(26,CH2);
+            }
         }
 
       }
@@ -4060,10 +4657,31 @@ void Anal_Function(void)
       if((Inputt.B12 ^ InputType.B12) == 1)
       {
          Output.B12 = 0;
+         // SMS Sending   
+         if((SendSMS.B12 ==0)&& (functointest_f ==0) && (Ack.B12 ==0))
+         {
+            fprintf(CH2,"AT+CMGF=1"); 
+            putc('\n',CH2);
+            delay_ms(10);
+            
+            SendSMS.B12 =1;
+            fprintf(CH2,"AT+CMGS=\"");
+            fprintf(CH2,sms_phonenumber);
+            
+            fprintf(CH2,"\"");
+            putc('\n',CH2);
+            delay_ms(50);
+           
+           printf(SMS_Massage12);  
+           putc('\n',CH2);
+           putc(26,CH2);
+         }
       }
       else
       {
          Output.B12 = 1;
+         SendSMS.B12 =0;
+         functointest_f =0;
       }
    }
 ///////////////////////////////////////////////////////////////////////////////
@@ -4104,6 +4722,25 @@ void Anal_Function(void)
                   else output_bit(Pbell,OnRelay);                          //Bell
                }
             }
+            // SMS Sending   
+            if((SendSMS.B13 ==0)&& (functointest_f ==0) && (Ack.B13 ==0))
+            {
+               fprintf(CH2,"AT+CMGF=1"); 
+               putc('\n',CH2);
+               delay_ms(10);
+               
+               SendSMS.B13 =1;
+               fprintf(CH2,"AT+CMGS=\"");
+               fprintf(CH2,sms_phonenumber);
+               
+               fprintf(CH2,"\"");
+               putc('\n',CH2);
+               delay_ms(50);
+              
+              printf(SMS_Massage13);  
+              putc('\n',CH2);
+              putc(26,CH2);
+            }
           }
 
       }
@@ -4114,10 +4751,31 @@ void Anal_Function(void)
       if((Inputt.B13 ^ InputType.B13) == 1)
       {
          Output.B13 = 0;
+         // SMS Sending   
+         if((SendSMS.B13 ==0)&& (functointest_f ==0) && (Ack.B13 ==0))
+         {
+            fprintf(CH2,"AT+CMGF=1"); 
+            putc('\n',CH2);
+            delay_ms(10);
+            
+            SendSMS.B13 =1;
+            fprintf(CH2,"AT+CMGS=\"");
+            fprintf(CH2,sms_phonenumber);
+            
+            fprintf(CH2,"\"");
+            putc('\n',CH2);
+            delay_ms(50);
+           
+           printf(SMS_Massage13);  
+           putc('\n',CH2);
+           putc(26,CH2);
+         }
       }
       else
       {
          Output.B13 = 1;
+         SendSMS.B13 =0;
+         functointest_f =0;
       }
    }
 ///////////////////////////////////////////////////////////////////////////////
@@ -4158,6 +4816,25 @@ void Anal_Function(void)
                   else output_bit(Pbell,OnRelay);                          //Bell
                }
             }
+            // SMS Sending   
+            if((SendSMS.B14 ==0)&& (functointest_f ==0) && (Ack.B14 ==0))
+            {
+               fprintf(CH2,"AT+CMGF=1"); 
+               putc('\n',CH2);
+               delay_ms(10);
+               
+               SendSMS.B14 =1;
+               fprintf(CH2,"AT+CMGS=\"");
+               fprintf(CH2,sms_phonenumber);
+               
+               fprintf(CH2,"\"");
+               putc('\n',CH2);
+               delay_ms(50);
+              
+              printf(SMS_Massage14);  
+              putc('\n',CH2);
+              putc(26,CH2);
+            }
           }
 
       }
@@ -4168,10 +4845,31 @@ void Anal_Function(void)
       if((Inputt.B14 ^ InputType.B14) == 1)
       {
          Output.B14 = 0;
+         // SMS Sending   
+         if((SendSMS.B14 ==0)&& (functointest_f ==0) && (Ack.B14 ==0))
+         {
+            fprintf(CH2,"AT+CMGF=1"); 
+            putc('\n',CH2);
+            delay_ms(10);
+            
+            SendSMS.B14 =1;
+            fprintf(CH2,"AT+CMGS=\"");
+            fprintf(CH2,sms_phonenumber);
+            
+            fprintf(CH2,"\"");
+            putc('\n',CH2);
+            delay_ms(50);
+           
+           printf(SMS_Massage14);  
+           putc('\n',CH2);
+           putc(26,CH2);
+         }
       }
       else
       {
          Output.B14 = 1;
+         SendSMS.B14 =0;
+         functointest_f =0;
       }
    }
 ///////////////////////////////////////////////////////////////////////////////
@@ -4212,6 +4910,25 @@ void Anal_Function(void)
                   else output_bit(Pbell,OnRelay);                          //Bell
                }
             }
+            // SMS Sending   
+            if((SendSMS.B15 ==0)&& (functointest_f ==0) && (Ack.B15 ==0))
+            {
+               fprintf(CH2,"AT+CMGF=1"); 
+               putc('\n',CH2);
+               delay_ms(10);
+               
+               SendSMS.B15 =1;
+               fprintf(CH2,"AT+CMGS=\"");
+               fprintf(CH2,sms_phonenumber);
+               
+               fprintf(CH2,"\"");
+               putc('\n',CH2);
+               delay_ms(50);
+              
+              printf(SMS_Massage15);  
+              putc('\n',CH2);
+              putc(26,CH2);
+            }
           }
 
       }
@@ -4221,11 +4938,31 @@ void Anal_Function(void)
    {
       if((Inputt.B15 ^ InputType.B15) == 1)
       {
-         Output.B15 = 0;
+         Output.B15 = 0; 
+         if((SendSMS.B15 ==0)&& (functointest_f ==0) && (Ack.B15 ==0))
+         {
+            fprintf(CH2,"AT+CMGF=1"); 
+            putc('\n',CH2);
+            delay_ms(10);
+            
+            SendSMS.B15 =1;
+            fprintf(CH2,"AT+CMGS=\"");
+            fprintf(CH2,sms_phonenumber);
+            
+            fprintf(CH2,"\"");
+            putc('\n',CH2);
+            delay_ms(50);
+           
+           printf(SMS_Massage15);  
+           putc('\n',CH2);
+           putc(26,CH2);
+         }
       }
       else
       {
          Output.B15 = 1;
+         SendSMS.B15 =0;
+         functointest_f =0;
       }
    }
 ///////////////////////////////////////////////////////////////////////////////
@@ -4267,6 +5004,25 @@ void Anal_Function(void)
                   else output_bit(Pbell,OnRelay);                          //Bell
                }
             }
+ 
+            if((SendSMS.B16 ==0)&& (functointest_f ==0) && (Ack.B16 ==0))
+            {
+               fprintf(CH2,"AT+CMGF=1"); 
+               putc('\n',CH2);
+               delay_ms(10);
+               
+               SendSMS.B16 =1;
+               fprintf(CH2,"AT+CMGS=\"");
+               fprintf(CH2,sms_phonenumber);
+               
+               fprintf(CH2,"\"");
+               putc('\n',CH2);
+               delay_ms(50);
+              
+              printf(SMS_Massage16);  
+              putc('\n',CH2);
+              putc(26,CH2);
+            }
           }
 
       }
@@ -4276,11 +5032,31 @@ void Anal_Function(void)
    {
       if((Inputt.B16 ^ InputType.B16) == 1)
       {
-         Output.B16 = 0;
+         Output.B16 = 0;  
+         if((SendSMS.B16 ==0)&& (functointest_f ==0) && (Ack.B16 ==0))
+         {
+            fprintf(CH2,"AT+CMGF=1"); 
+            putc('\n',CH2);
+            delay_ms(10);
+            
+            SendSMS.B16 =1;
+            fprintf(CH2,"AT+CMGS=\"");
+            fprintf(CH2,sms_phonenumber);
+            
+            fprintf(CH2,"\"");
+            putc('\n',CH2);
+            delay_ms(50);
+           
+           printf(SMS_Massage16);  
+           putc('\n',CH2);
+           putc(26,CH2);
+         }
       }
       else
       {
          Output.B16 = 1;
+         SendSMS.B16 =0;
+         functointest_f =0;
       }
    }
 //}
@@ -4291,7 +5067,6 @@ void Anal_Function(void)
    if(AlarmIndicator.B17 == 1)    // Alarm Function
    {
       if((((Inputt.B17 ^ InputType.B17) == 1) && (FaultType.B17 == 1))|| In.B17 == 1)    // alarm1 occure and "Lock type"
-      //if(Inputt.B17 == 0)
       {
          if(Ack.B17 == 0)
          {
@@ -4325,6 +5100,25 @@ void Anal_Function(void)
                   else output_bit(Pbell,OnRelay);                          //Bell
                }
             }
+            // SMS Sending   
+            if((SendSMS.B17 ==0)&& (functointest_f ==0) && (Ack.B17 ==0))
+            {
+               fprintf(CH2,"AT+CMGF=1"); 
+               putc('\n',CH2);
+               delay_ms(10);
+               
+               SendSMS.B17 =1;
+               fprintf(CH2,"AT+CMGS=\"");
+               fprintf(CH2,sms_phonenumber);
+               
+               fprintf(CH2,"\"");
+               putc('\n',CH2);
+               delay_ms(50);
+              
+              printf(SMS_Massage17);  
+              putc('\n',CH2);
+              putc(26,CH2);
+            }
           }
 
       }
@@ -4335,10 +5129,30 @@ void Anal_Function(void)
       if((Inputt.B17 ^ InputType.B17) == 1)
       {
          Output.B17 = 0;
+         if((SendSMS.B17 ==0)&& (functointest_f ==0) && (Ack.B17 ==0))
+         {
+            fprintf(CH2,"AT+CMGF=1"); 
+            putc('\n',CH2);
+            delay_ms(10);
+            
+            SendSMS.B17 =1;
+            fprintf(CH2,"AT+CMGS=\"");
+            fprintf(CH2,sms_phonenumber);
+            
+            fprintf(CH2,"\"");
+            putc('\n',CH2);
+            delay_ms(50);
+           
+           printf(SMS_Massage17);  
+           putc('\n',CH2);
+           putc(26,CH2);
+         }
       }
       else
       {
          Output.B17 = 1;
+         SendSMS.B17 =0;
+         functointest_f =0;
       }
    }
 //}
@@ -4383,6 +5197,25 @@ void Anal_Function(void)
                   else output_bit(Pbell,OnRelay);                          //Bell
                }
             }
+            // SMS Sending   
+            if((SendSMS.B18 ==0)&& (functointest_f ==0) && (Ack.B18 ==0))
+            {
+               fprintf(CH2,"AT+CMGF=1"); 
+               putc('\n',CH2);
+               delay_ms(10);
+               
+               SendSMS.B18 =1;
+               fprintf(CH2,"AT+CMGS=\"");
+               fprintf(CH2,sms_phonenumber);
+               
+               fprintf(CH2,"\"");
+               putc('\n',CH2);
+               delay_ms(50);
+              
+              printf(SMS_Massage18);  
+              putc('\n',CH2);
+              putc(26,CH2);
+            }
           }
 
       }
@@ -4393,10 +5226,31 @@ void Anal_Function(void)
       if((Inputt.B18 ^ InputType.B18) == 1)
       {
          Output.B18 = 0;
+         // SMS Sending   
+         if((SendSMS.B18 ==0)&& (functointest_f ==0) && (Ack.B18 ==0))
+         {
+            fprintf(CH2,"AT+CMGF=1"); 
+            putc('\n',CH2);
+            delay_ms(10);
+            
+            SendSMS.B18 =1;
+            fprintf(CH2,"AT+CMGS=\"");
+            fprintf(CH2,sms_phonenumber);
+            
+            fprintf(CH2,"\"");
+            putc('\n',CH2);
+            delay_ms(50);
+           
+           printf(SMS_Massage18);  
+           putc('\n',CH2);
+           putc(26,CH2);
+         }
       }
       else
       {
          Output.B18 = 1;
+         SendSMS.B18 =0;
+         functointest_f =0;
       }
    }
 //}
@@ -4440,6 +5294,25 @@ void Anal_Function(void)
                   else output_bit(Pbell,OnRelay);                          //Bell
                }
             }
+            // SMS Sending   
+            if((SendSMS.B19 ==0)&& (functointest_f ==0) && (Ack.B19 ==0))
+            {
+               fprintf(CH2,"AT+CMGF=1"); 
+               putc('\n',CH2);
+               delay_ms(10);
+               
+               SendSMS.B19 =1;
+               fprintf(CH2,"AT+CMGS=\"");
+               fprintf(CH2,sms_phonenumber);
+               
+               fprintf(CH2,"\"");
+               putc('\n',CH2);
+               delay_ms(50);
+              
+              printf(SMS_Massage19);  
+              putc('\n',CH2);
+              putc(26,CH2);
+            }
           }
 
       }
@@ -4450,10 +5323,31 @@ void Anal_Function(void)
       if((Inputt.B19 ^ InputType.B19) == 1)
       {
          Output.B19 = 0;
+         // SMS Sending   
+         if((SendSMS.B19 ==0)&& (functointest_f ==0) && (Ack.B19 ==0))
+         {
+            fprintf(CH2,"AT+CMGF=1"); 
+            putc('\n',CH2);
+            delay_ms(10);
+            
+            SendSMS.B19 =1;
+            fprintf(CH2,"AT+CMGS=\"");
+            fprintf(CH2,sms_phonenumber);
+            
+            fprintf(CH2,"\"");
+            putc('\n',CH2);
+            delay_ms(50);
+           
+           printf(SMS_Massage19);  
+           putc('\n',CH2);
+           putc(26,CH2);
+         }
       }
       else
       {
          Output.B19 = 1;
+         SendSMS.B19 =0;
+         functointest_f =0;
       }
    }
 //}
@@ -4497,6 +5391,25 @@ void Anal_Function(void)
                   else output_bit(Pbell,OnRelay);                          //Bell
                }
             }
+            // SMS Sending   
+            if((SendSMS.B20 ==0)&& (functointest_f ==0) && (Ack.B20 ==0))
+            {
+               fprintf(CH2,"AT+CMGF=1"); 
+               putc('\n',CH2);
+               delay_ms(10);
+               
+               SendSMS.B20 =1;
+               fprintf(CH2,"AT+CMGS=\"");
+               fprintf(CH2,sms_phonenumber);
+               
+               fprintf(CH2,"\"");
+               putc('\n',CH2);
+               delay_ms(50);
+              
+              printf(SMS_Massage20);  
+              putc('\n',CH2);
+              putc(26,CH2);
+            }
           }
 
       }
@@ -4507,10 +5420,31 @@ void Anal_Function(void)
       if((Inputt.B20 ^ InputType.B20) == 1)
       {
          Output.B20 = 0;
+         // SMS Sending   
+         if((SendSMS.B20 ==0)&& (functointest_f ==0) && (Ack.B20 ==0))
+         {
+            fprintf(CH2,"AT+CMGF=1"); 
+            putc('\n',CH2);
+            delay_ms(10);
+            
+            SendSMS.B20 =1;
+            fprintf(CH2,"AT+CMGS=\"");
+            fprintf(CH2,sms_phonenumber);
+            
+            fprintf(CH2,"\"");
+            putc('\n',CH2);
+            delay_ms(50);
+           
+           printf(SMS_Massage20);  
+           putc('\n',CH2);
+           putc(26,CH2);
+         }
       }
       else
       {
          Output.B20 = 1;
+         SendSMS.B20 =0;
+         functointest_f =0;
       }
    }
     
@@ -4567,6 +5501,21 @@ static unsigned char inputflag = 0;
          }
        }
        inputflag =1;
+       // SMS Sending   
+      if((SendSMS.B1 ==0) && (functointest_f ==0) && (Ack.B1 ==0))
+      {
+         SendSMS.B1 =1;
+         fprintf(CH2,"AT+CMGS=\"");
+         fprintf(CH2,sms_phonenumber);
+         
+         fprintf(CH2,"\"");
+         putc('\n',CH2);
+         delay_ms(50);
+        
+        fprintf(CH2,SMS_Massage1);   
+        putc('\n',CH2);
+       putc(26,CH2);
+      }
    }
    
    else if(FaultType.B1 == 0)
@@ -4574,6 +5523,7 @@ static unsigned char inputflag = 0;
       In2.B1 = 0x00;
       Ack.B1 = 0;
       Output.B1 = 1;      //Off LED
+      SendSMS.B1 =0;// Clear SMS
 
       if((OutputType.B1 == 1 || OutputBoth.B1 == 0) && inputflag ==0)     //If Buzzer or Both
       {
@@ -4640,12 +5590,28 @@ static unsigned char inputflag = 0;
          }
        }
       inputflag =1;
+      // SMS Sending   
+      if((SendSMS.B2 ==0)&& (functointest_f ==0) && (Ack.B2 ==0))
+      {
+         SendSMS.B2 =1;
+         fprintf(CH2,"AT+CMGS=\"");
+         fprintf(CH2,sms_phonenumber);
+         
+         fprintf(CH2,"\"");
+         putc('\n',CH2);
+         delay_ms(50);
+        
+        fprintf(CH2,SMS_Massage2); 
+        putc('\n',CH2);
+       putc(26,CH2);
+      }
    }
    else if(FaultType.B2 == 0)
    {
       In2.B2 = 0x00;
       Ack.B2 = 0;
       Output.B2 = 1;      //Off LED
+      SendSMS.B2 =0;// Clear SMS
 
       if((OutputType.B2 == 1 || OutputBoth.B2 == 0) && inputflag ==0)     //If Buzzer or Both
       {
@@ -4711,12 +5677,28 @@ static unsigned char inputflag = 0;
          }
        }
       inputflag =1;
+      // SMS Sending   
+      if((SendSMS.B3 ==0)&& (functointest_f ==0) && (Ack.B3 ==0))
+      {
+         SendSMS.B3 =1;
+         fprintf(CH2,"AT+CMGS=\"");
+         fprintf(CH2,sms_phonenumber);
+         
+         fprintf(CH2,"\"");
+         putc('\n',CH2);
+         delay_ms(50);
+        
+        fprintf(CH2,SMS_Massage3); 
+        putc('\n',CH2);
+       putc(26,CH2);
+      }
    }
    else if(FaultType.B3 == 0)
    {
       In2.B3 = 0x00;
       Ack.B3 = 0;
       Output.B3 = 1;      //Off LED
+      SendSMS.B3 =0;// Clear SMS
 
       if((OutputType.B3 == 1 || OutputBoth.B3 == 0) && inputflag ==0)     //If Buzzer or Both
       {
@@ -4782,12 +5764,28 @@ static unsigned char inputflag = 0;
          }
        }
       inputflag =1;
+      // SMS Sending   
+      if((SendSMS.B4 ==0)&& (functointest_f ==0) && (Ack.B4 ==0))
+      {
+         SendSMS.B4 =1;
+         fprintf(CH2,"AT+CMGS=\"");
+         fprintf(CH2,sms_phonenumber);
+         
+         fprintf(CH2,"\"");
+         putc('\n',CH2);
+         delay_ms(50);
+        
+        fprintf(CH2,SMS_Massage4); 
+        putc('\n',CH2);
+       putc(26,CH2);
+      }
    }
    else if(FaultType.B4 == 0)
    {
       In2.B4 = 0x00;
       Ack.B4 = 0;
       Output.B4 = 1;      //Off LED
+      SendSMS.B4 =0;// Clear SMS
 
       if((OutputType.B4 == 1 || OutputBoth.B4 == 0) && inputflag ==0)     //If Buzzer or Both
       {
@@ -4853,12 +5851,28 @@ static unsigned char inputflag = 0;
          }
        }
       inputflag =1;
+      // SMS Sending   
+      if((SendSMS.B5 ==0)&& (functointest_f ==0) && (Ack.B5 ==0))
+      {
+         SendSMS.B5 =1;
+         fprintf(CH2,"AT+CMGS=\"");
+         fprintf(CH2,sms_phonenumber);
+         
+         fprintf(CH2,"\"");
+         putc('\n',CH2);
+         delay_ms(50);
+        
+        fprintf(CH2,SMS_Massage5); 
+        putc('\n',CH2);
+       putc(26,CH2);
+      }
    }
    else if(FaultType.B5 == 0)
    {
       In2.B5 = 0x00;
       Ack.B5 = 0;
       Output.B5 = 1;      //Off LED
+      SendSMS.B5 =0;// Clear SMS
 
       if((OutputType.B5 == 1 || OutputBoth.B5 == 0) && inputflag ==0)     //If Buzzer or Both
       {
@@ -4924,12 +5938,28 @@ static unsigned char inputflag = 0;
          }
        }
       inputflag =1;
+      // SMS Sending   
+      if((SendSMS.B6 ==0)&& (functointest_f ==0) && (Ack.B6 ==0))
+      {
+         SendSMS.B6 =1;
+         fprintf(CH2,"AT+CMGS=\"");
+         fprintf(CH2,sms_phonenumber);
+         
+         fprintf(CH2,"\"");
+         putc('\n',CH2);
+         delay_ms(50);
+        
+        fprintf(CH2,SMS_Massage6);  
+        putc('\n',CH2);
+       putc(26,CH2);
+      }
    }
    else if(FaultType.B6 == 0)
    {
       In2.B6 = 0x00;
       Ack.B6 = 0;
       Output.B6 = 1;      //Off LED
+      SendSMS.B6 =0;// Clear SMS
 
       if((OutputType.B6 == 1 || OutputBoth.B6 == 0)&& inputflag ==0)      //If Buzzer or Both
       {
@@ -4995,12 +6025,28 @@ static unsigned char inputflag = 0;
          }
        }
       inputflag =1;
+      // SMS Sending   
+      if((SendSMS.B7 ==0)&& (functointest_f ==0) && (Ack.B7 ==0))
+      {
+         SendSMS.B7 =1;
+         fprintf(CH2,"AT+CMGS=\"");
+         fprintf(CH2,sms_phonenumber);
+         
+         fprintf(CH2,"\"");
+         putc('\n',CH2);
+         delay_ms(50);
+        
+        fprintf(CH2,SMS_Massage7);  
+        putc('\n',CH2);
+       putc(26,CH2);
+      }
    }
    else if(FaultType.B7 == 0)
    {
       In2.B7 = 0x00;
       Ack.B7 = 0;
       Output.B7 = 1;      //Off LED
+      SendSMS.B7 =0;// Clear SMS
 
       if((OutputType.B7 == 1 || OutputBoth.B7 == 0)&& inputflag ==0)      //If Buzzer or Both
       {
@@ -5066,12 +6112,28 @@ static unsigned char inputflag = 0;
          }
        }
       inputflag =1;
+      // SMS Sending   
+      if((SendSMS.B8 ==0) && (functointest_f ==0) && (Ack.B8 ==0))
+      {
+         SendSMS.B8 =1;
+         fprintf(CH2,"AT+CMGS=\"");
+         fprintf(CH2,sms_phonenumber);
+         
+         fprintf(CH2,"\"");
+         putc('\n',CH2);
+         delay_ms(50);
+        
+        fprintf(CH2,SMS_Massage8);   
+        putc('\n',CH2);
+        putc(26,CH2);
+      }
    }
    else if(FaultType.B8 == 0)
    {
       In2.B8 = 0x00;
       Ack.B8 = 0;
       Output.B8 = 1;      //Off LED
+      SendSMS.B8 =0;// Clear SMS
 
       if((OutputType.B8 == 1 || OutputBoth.B8 == 0)&& inputflag ==0)      //If Buzzer or Both
       {
@@ -5137,13 +6199,29 @@ static unsigned char inputflag = 0;
          }
        }
       inputflag =1;
+      // SMS Sending   
+      if((SendSMS.B9 ==0) && (functointest_f ==0) && (Ack.B9 ==0))
+      {
+         SendSMS.B9 =1;
+         fprintf(CH2,"AT+CMGS=\"");
+         fprintf(CH2,sms_phonenumber);
+         
+         fprintf(CH2,"\"");
+         putc('\n',CH2);
+         delay_ms(50);
+        
+        fprintf(CH2,SMS_Massage9);   
+        putc('\n',CH2);
+        putc(26,CH2);
+      }
    }
    else if(FaultType.B9 == 0)
    {
       In2.B9 = 0x00;
       Ack.B9 = 0;
       Output.B9 = 1;      //Off LED
-
+      SendSMS.B9 =0;// Clear SMS
+      
       if((OutputType.B9 == 1 || OutputBoth.B9 == 0)&& inputflag ==0)      //If Buzzer or Both
       {
          if(CheckAutoReset(0x01) == 1);   //Check other Inputt "Ack" or not if not,do nothing
@@ -5208,12 +6286,28 @@ static unsigned char inputflag = 0;
          }
        }
       inputflag =1;
+      // SMS Sending   
+      if((SendSMS.B10 ==0) && (functointest_f ==0) && (Ack.B10 ==0))
+      {
+         SendSMS.B10 =1;
+         fprintf(CH2,"AT+CMGS=\"");
+         fprintf(CH2,sms_phonenumber);
+         
+         fprintf(CH2,"\"");
+         putc('\n',CH2);
+         delay_ms(50);
+        
+        fprintf(CH2,SMS_Massage10);   
+        putc('\n',CH2);
+        putc(26,CH2);
+      }
    }
    else if(FaultType.B10 == 0)
    {
       In2.B10 = 0x00;
       Ack.B10 = 0;
       Output.B10 = 1;      //Off LED
+      SendSMS.B10 =0;// Clear SMS
 
       if((OutputType.B10 == 1 || OutputBoth.B10 == 0)&& inputflag ==0)      //If Buzzer or Both
       {
@@ -5285,12 +6379,28 @@ static unsigned char inputflag = 0;
          }
        }
       inputflag =1;
+      // SMS Sending   
+     if((SendSMS.B11 ==0) && (functointest_f ==0) && (Ack.B11 ==0))
+     {
+       SendSMS.B11 =1;
+       fprintf(CH2,"AT+CMGS=\"");
+       fprintf(CH2,sms_phonenumber);
+       
+       fprintf(CH2,"\"");
+       putc('\n',CH2);
+       delay_ms(50);
+      
+      fprintf(CH2,SMS_Massage11);   
+      putc('\n',CH2);
+      putc(26,CH2);
+     }
    }
    else if(FaultType.B11 == 0)
    {
       In2.B11 = 0x00;
       Ack.B11 = 0;
       Output.B11 = 1;      //Off LED
+      SendSMS.B11 =0;// Clear SMS
 
       if((OutputType.B11 == 1 || OutputBoth.B11 == 0)&& inputflag ==0)      //If Buzzer or Both
       {
@@ -5356,12 +6466,29 @@ static unsigned char inputflag = 0;
          }
        }
       inputflag =1;
+         // SMS Sending   
+      if((SendSMS.B12 ==0) && (functointest_f ==0) && (Ack.B12 ==0))
+      {
+        SendSMS.B12 =1;
+        fprintf(CH2,"AT+CMGS=\"");
+        fprintf(CH2,sms_phonenumber);
+        
+        fprintf(CH2,"\"");
+        putc('\n',CH2);
+        delay_ms(50);
+       
+       fprintf(CH2,SMS_Massage12);   
+       putc('\n',CH2);
+       putc(26,CH2);
+      }
+
    }
    else if(FaultType.B12 == 0)
    {
       In2.B12 = 0x00;
       Ack.B12 = 0;
       Output.B12 = 1;      //Off LED
+      SendSMS.B12 =0;// Clear SMS
 
       if((OutputType.B12 == 1 || OutputBoth.B12 == 0)&& inputflag ==0)      //If Buzzer or Both
       {
@@ -5427,12 +6554,28 @@ static unsigned char inputflag = 0;
          }
        }
       inputflag =1;
+      // SMS Sending   
+        if((SendSMS.B13 ==0) && (functointest_f ==0) && (Ack.B13 ==0))
+        {
+          SendSMS.B13 =1;
+          fprintf(CH2,"AT+CMGS=\"");
+          fprintf(CH2,sms_phonenumber);
+          
+          fprintf(CH2,"\"");
+          putc('\n',CH2);
+          delay_ms(50);
+         
+         fprintf(CH2,SMS_Massage13);   
+         putc('\n',CH2);
+         putc(26,CH2);
+        }
    }
    else if(FaultType.B13 == 0)
    {
       In2.B13 = 0x00;
       Ack.B13 = 0;
       Output.B13 = 1;      //Off LED
+      SendSMS.B13 =0;// Clear SMS
 
       if((OutputType.B13 == 1 || OutputBoth.B13 == 0)&& inputflag ==0)      //If Buzzer or Both
       {
@@ -5498,12 +6641,28 @@ static unsigned char inputflag = 0;
          }
        }
       inputflag =1;
+      // SMS Sending   
+        if((SendSMS.B14 ==0) && (functointest_f ==0) && (Ack.B14 ==0))
+        {
+          SendSMS.B14 =1;
+          fprintf(CH2,"AT+CMGS=\"");
+          fprintf(CH2,sms_phonenumber);
+          
+          fprintf(CH2,"\"");
+          putc('\n',CH2);
+          delay_ms(50);
+         
+         fprintf(CH2,SMS_Massage14);   
+         putc('\n',CH2);
+         putc(26,CH2);
+        }
    }
    else if(FaultType.B14 == 0)
    {
       In2.B14 = 0x00;
       Ack.B14 = 0;
       Output.B14 = 1;      //Off LED
+      SendSMS.B14 =0;// Clear SMS
 
       if((OutputType.B14 == 1 || OutputBoth.B14 == 0)&& inputflag ==0)      //If Buzzer or Both
       {
@@ -5569,12 +6728,28 @@ static unsigned char inputflag = 0;
          }
        }
       inputflag =1;
+      // SMS Sending   
+        if((SendSMS.B15 ==0) && (functointest_f ==0) && (Ack.B15 ==0))
+        {
+          SendSMS.B15 =1;
+          fprintf(CH2,"AT+CMGS=\"");
+          fprintf(CH2,sms_phonenumber);
+          
+          fprintf(CH2,"\"");
+          putc('\n',CH2);
+          delay_ms(50);
+         
+         fprintf(CH2,SMS_Massage15);   
+         putc('\n',CH2);
+         putc(26,CH2);
+        }
    }
    else if(FaultType.B15 == 0)
    {
       In2.B15 = 0x00;
       Ack.B15 = 0;
       Output.B15 = 1;      //Off LED
+      SendSMS.B15 =0;// Clear SMS
 
       if((OutputType.B15 == 1 || OutputBoth.B15 == 0)&& inputflag ==0)      //If Buzzer or Both
       {
@@ -5640,12 +6815,28 @@ static unsigned char inputflag = 0;
          }
        }
       inputflag =1;
+       // SMS Sending   
+     if((SendSMS.B16 ==0) && (functointest_f ==0) && (Ack.B16 ==0))
+     {
+       SendSMS.B16 =1;
+       fprintf(CH2,"AT+CMGS=\"");
+       fprintf(CH2,sms_phonenumber);
+       
+       fprintf(CH2,"\"");
+       putc('\n',CH2);
+       delay_ms(50);
+      
+      fprintf(CH2,SMS_Massage16);   
+      putc('\n',CH2);
+      putc(26,CH2);
+     }
    }
    else if(FaultType.B16 == 0)
    {
       In2.B16 = 0x00;
       Ack.B16 = 0;
       Output.B16 = 1;      //Off LED
+      SendSMS.B16 =0;// Clear SMS
 
       if((OutputType.B16 == 1 || OutputBoth.B16 == 0)&& inputflag ==0)      //If Buzzer or Both
       {
@@ -5710,12 +6901,28 @@ static unsigned char inputflag = 0;
          }
        }
       inputflag =1;
+       // SMS Sending   
+     if((SendSMS.B17 ==0) && (functointest_f ==0) && (Ack.B16 ==0))
+     {
+       SendSMS.B17 =1;
+       fprintf(CH2,"AT+CMGS=\"");
+       fprintf(CH2,sms_phonenumber);
+       
+       fprintf(CH2,"\"");
+       putc('\n',CH2);
+       delay_ms(50);
+      
+      fprintf(CH2,SMS_Massage17);   
+      putc('\n',CH2);
+      putc(26,CH2);
+     }
    }
    else if(FaultType.B17 == 0)
    {
       In2.B17 = 0x00;
       Ack.B17 = 0;
       Output.B17 = 1;      //Off LED
+      SendSMS.B17 =0;// Clear SMS
 
       if((OutputType.B17 == 1 || OutputBoth.B17 == 0)&& inputflag ==0)      //If Buzzer or Both
       {
@@ -5780,12 +6987,28 @@ static unsigned char inputflag = 0;
          }
        }
       inputflag =1;
+       // SMS Sending   
+     if((SendSMS.B18 ==0) && (functointest_f ==0) && (Ack.B18 ==0))
+     {
+       SendSMS.B18 =1;
+       fprintf(CH2,"AT+CMGS=\"");
+       fprintf(CH2,sms_phonenumber);
+       
+       fprintf(CH2,"\"");
+       putc('\n',CH2);
+       delay_ms(50);
+      
+      fprintf(CH2,SMS_Massage18);   
+      putc('\n',CH2);
+      putc(26,CH2);
+     }
    }
    else if(FaultType.B18 == 0)
    {
       In2.B18 = 0x00;
       Ack.B18 = 0;
       Output.B18 = 1;      //Off LED
+      SendSMS.B18 =0;// Clear SMS
 
       if((OutputType.B18== 1 || OutputBoth.B18 == 0)&& inputflag ==0)      //If Buzzer or Both
       {
@@ -5850,12 +7073,28 @@ static unsigned char inputflag = 0;
          }
        }
       inputflag =1;
+       // SMS Sending   
+     if((SendSMS.B19 ==0) && (functointest_f ==0) && (Ack.B19 ==0))
+     {
+       SendSMS.B19 =1;
+       fprintf(CH2,"AT+CMGS=\"");
+       fprintf(CH2,sms_phonenumber);
+       
+       fprintf(CH2,"\"");
+       putc('\n',CH2);
+       delay_ms(50);
+      
+      fprintf(CH2,SMS_Massage19);   
+      putc('\n',CH2);
+      putc(26,CH2);
+     }
    }
    else if(FaultType.B19 == 0)
    {
       In2.B19 = 0x00;
       Ack.B19 = 0;
       Output.B19 = 1;      //Off LED
+      SendSMS.B19 =0;// Clear SMS
 
       if((OutputType.B19== 1 || OutputBoth.B19 == 0)&& inputflag ==0)      //If Buzzer or Both
       {
@@ -5921,12 +7160,28 @@ static unsigned char inputflag = 0;
          }
        }
     inputflag =1;
+     // SMS Sending   
+     if((SendSMS.B20 ==0) && (functointest_f ==0) && (Ack.B20 ==0))
+     {
+       SendSMS.B20 =1;
+       fprintf(CH2,"AT+CMGS=\"");
+       fprintf(CH2,sms_phonenumber);
+       
+       fprintf(CH2,"\"");
+       putc('\n',CH2);
+       delay_ms(50);
+      
+      fprintf(CH2,SMS_Massage20);   
+      putc('\n',CH2);
+      putc(26,CH2);
+     }
    }
    else if(FaultType.B20 == 0)
    {
       In2.B20 = 0x00;
       Ack.B20 = 0;
       Output.B20 = 1;      //Off LED
+      SendSMS.B20 =0;// Clear SMS
 
       if((OutputType.B20== 1 || OutputBoth.B20 == 0)&& inputflag ==0)      //If Buzzer or Both
       {
@@ -6861,12 +8116,6 @@ int1 CheckAutoReset(unsigned char DatType)
    return(check);
 }
 
-void initialIC(void)
-{
-
-
-}
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -7290,28 +8539,7 @@ void main()
    output_bit(Pbuzzer,OffRelay);   //Clear Buzzer
    output_bit(Pbell,OffRelay);     //Clear Bell
    output_bit(P485ctrl,0);
-   //output_bit(P485ctrl,0);
-   //output_bit(PIN_B4,0); //jj bedug RLY SUP. toggle
-   
-   //Send_Ouput();
-   //delay_ms(1000);
-   /*
-    unsigned char i;
-   for(i=0;i<=25;i++)
-   {
-      FaultNow[i]=1;
-      FaultAgo[i]=1;
-   }
-   Anal_Function(); restart_wdt();
-   Send_Ouput(); restart_wdt();
-   
-   Input1_8 = 0x00;
-   Input9_10 = 0x00;
-   Input9_16 = 0x00;
-   Input11_18 = 0x00;
-   Input17_24 = 0x00;
-   Input19_20 = 0x00;
-   */
+
    IO_OUTPUT_A(IO_DEVICE_2, 0xff);
    IO_OUTPUT_B(IO_DEVICE_2, 0xff);
             
@@ -7469,6 +8697,38 @@ void main()
       }   
    }
    
+   //GSM SIM900 Init
+   delay_ms(1000);
+   fprintf(CH2,"AT+CMGF=1"); 
+   putc('\n',CH2);
+   delay_ms(50);
+   
+   SendSMS.B1 =0;
+   SendSMS.B2 =0;
+   SendSMS.B3 =0;
+   SendSMS.B4 =0;
+   SendSMS.B5 =0;
+   SendSMS.B6 =0;
+   SendSMS.B7 =0;
+   SendSMS.B8 =0;
+   SendSMS.B9 =0;
+   SendSMS.B10 =0;
+   SendSMS.B11 =0;
+   SendSMS.B12 =0;
+   SendSMS.B13 =0;
+   SendSMS.B14 =0;
+   SendSMS.B15 =0;
+   SendSMS.B16 =0;
+   
+   char m;
+   for(m=0; m<10; m++)
+   {
+      sms_phonenumber[m] = read_eeprom(0x32 + m);
+   }
+   sms_phonenumber[m] = '\0' ; // end string
+   delay_ms(500);
+ 
+   
    while(TRUE)
    {
   
@@ -7482,48 +8742,20 @@ void main()
          Modbus_Function();
          recieve_completed = 0 ;
       }
-      
-
-   /*
-      if(Inputt(PSyncR) != SyncFlag)      //Check Sync
-      {
-         FlashingFlag = Inputt(PSyncR);
-         SyncFlag = Inputt(PSyncR);
-         output_bit(PSyncS,SyncFlag);
-         SyncStatus = 1;
-         Synctimer = 200;
-      }
-   */
-   
 
       check_ack();
       check_reset();
       check_test();      
       restart_wdt();
       
-      /*
-      if((FaultDelayTime == 0)||(FaultDelayTime == 0xff))
-      {
-         Read_input(); restart_wdt();
-      }
-      else
-      {
-         if(ReadIn_flag)
-         {
-               ReadIn_flag = 0;
-               Read_input(); restart_wdt();
-         }
-      }
-      */
       if(StartRead)
       {
          //initialIC();
          Read_input(); restart_wdt(); //Must be first
-      
          Anal_Function(); restart_wdt();
          Send_Ouput(); restart_wdt();
-         Driver595(); restart_wdt();      
-         output_toggle(PIN_A0);
+        // Driver595(); restart_wdt();      
+        // output_toggle(PIN_A0);
          
          if(RefreshConfigData)
          {
@@ -7553,26 +8785,6 @@ void main()
          
       }     
 
-      /*        
-      if(outmcp23)
-      {
-         outmcp23 = 0;
-         FlashingRateTime = 1; //100 time per sec.
-         
-         MCP23s17_Ip_dat = IO_INPUT_A(IO_DEVICE_0);
-         restart_wdt();
-                  
-         MCP23s17_Ip_dat = IO_INPUT_B(IO_DEVICE_0);
-         restart_wdt();
-                
-         IO_OUTPUT_A(IO_DEVICE_1, MCP23s17_Ip_dat);
-         restart_wdt();
-         
-         IO_OUTPUT_B(IO_DEVICE_1, MCP23s17_Ip_dat);
-         restart_wdt();   
-        
-      }
-      */
    }
    
 }

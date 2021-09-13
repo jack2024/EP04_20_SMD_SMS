@@ -1,7 +1,7 @@
 [PROJECT]
 Target=ESPAN-04_test_faultDelayTime.hex
-Processor_Text=PIC18F252
-CCSVersion=5.080
+Processor_Text=PIC18F26K22
+CCSVersion=5.091
 Compiler=PCH
 Development_Mode=
 ToolSuite=CCS
@@ -22,7 +22,7 @@ AdditionalOptionString=
 1=ESPAN-04_test_faultDelayTime.c
 
 [defines]
-buildcount=5
+buildcount=14
 enabled=0
 chip=1
 D1=
@@ -30,15 +30,15 @@ V1=
 
 [Opened Files]
 1=ESPAN-04_test_faultDelayTime.c
-t1=5782
+t1=1982
 2=ESPAN-04.h
 t2=1
 3=ESPAN-04.h
 t3=1
-Count=2
+Count=1
 
 [ProjectLog]
-Days=5
+Days=6
 D1=28-03-2017
 D1_L=4
 D1_L1=[39190]Stopped Editing.
@@ -79,6 +79,15 @@ D5=25-11-2019
 D5_L=2
 D5_L1=[40796]Project Opened.
 D5_L2=[40813]Project Closed.
+D6=13-09-2021
+D6_L=7
+D6_L1=[38959]Project Opened.
+D6_L2=[38988]Started Editing.
+D6_L3=[40805]Stopped Editing.
+D6_L4=[40821]Started Editing.
+D6_L5=[43445]Stopped Editing.
+D6_L6=[50553]Started Editing.
+D6_L7=[51149]Stopped Editing.
 
 [Directories]
 Include=<default>

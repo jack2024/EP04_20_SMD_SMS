@@ -1,24 +1,24 @@
 
-ROM used:   32434/32768 (99%)
-            32434/32768 (99%) including unused fragments
+ROM used:   50732/65536 (77%)
+            50732/65536 (77%) including unused fragments
 
-            3.5 Average locations per line
-            7.3 Average locations per statement
+            4.7 Average locations per line
+            8.7 Average locations per statement
 
-RAM used:   489/1536 (32%) at main() level
-            532/1536 (35%) worst case
+RAM used:   3527/3896 (91%) at main() level
+            3553/3896 (91%) worst case
 
 Stack used: 4 worst case (3 in main + 1 for interrupts)
 Stack size: 31
 
 Lines Stmts  %   Files
 ----- ----- ---  -----
- 7581  4334  98  ESPAN-04_test_faultDelayTime.c
-   62     0   0  ESPAN-04.h
-  679     0   0  C:\Program Files (x86)\PICC\Devices\18F252.h
- 1032   110   2  23S17.c
+ 8791  5717  98  ESPAN-04_test_faultDelayTime.c
+   65     0   0  ..\ESPAN04_20 - Delay - SP - SMD - PIC18F252\ESPAN-04.h
+ 1022     0   0  C:\Program Files (x86)\PICC\devices\18F26K22.h
+ 1032   110   2  ..\ESPAN04_20 - Delay - SP - SMD - PIC18F252\23S17.c
 ----- -----
- 9354  4444 Total
+10910  5827 Total
 
 Page ROM  %  RAM    Vol Diff  Functions:
 ---- --- --- ---    --- ----  ----------
@@ -31,57 +31,160 @@ Page ROM  %  RAM    Vol Diff  Functions:
 0     28   0    2     75  2.3  IO_INPUT_A
 0     28   0    2     75  2.3  IO_INPUT_B
 0     18   0    2     59  1.5  IO_SET_TRIS_A
-0     20   0    2     76  0.6  IO_SET_TRIS_B
-0     10   0    0             @PUTCHARI_BIU_1
-0    272   0    0             @const827
-0    272   0    0             @const830
-0   1020   2    2   9835  5.5  Alarmtosend
+0     20   0    2     77  0.5  IO_SET_TRIS_B
+0      8   0    0             @PUTCHARI_BIU_1
+0     70   0    1             @PUTCHAR_2_
+0    272   0    0             @const977
+0    272   0    0             @const980
+0   1020   1    2   9835  5.5  Alarmtosend
 0     92   0    3    131  3.5  StoreReleaseFault
 0     54   0    5             @READBITA
 0     66   0    6             @WRITEBITA
-0     80   0    5    357  6.6  CRC
-0    274   0    2   1248  4.4  Driver595
-0    562   1    2   2692  6.4  checkCommand
-0   5986   9    2  44250  9.5  Modbus_Function
-0   2404   4    5  16988 12.0  Read_input
-0     34   0    5             @MUL1616
-0     66   0    0             @goto31791
-0     66   0    0             @goto31836
-0     66   0    0             @goto31889
-0     66   0    0             @goto31935
-0   3558   5    1  17610  3.5  Read_Config
-0     18   0    0     35  1.6  RDA_isr
-0    160   0    1   1455  6.4  TIMER2_isr
-0   8966  14   37 137779  6.5  Anal_Function
-0   1188   2    1  20681  4.5  Send_Ouput
+0     86   0    5    357  6.6  CRC
+0    680   1    2   3305  7.4  checkCommand
+0  11876  12   12  63833 11.5  Modbus_Function
+0   2492   2    5  16988 12.0  Read_input
+0     34   0    5  16988 12.0  @MUL1616
+0     66   0    0             @goto61471
+0     66   0    0             @goto61515
+0     66   0    0             @goto61567
+0     66   0    0             @goto61611
+0   6390   6   13  31027  8.5  Read_Config
+0     16   0    0     35  1.6  RDA_isr
+0    164   0    1   1455  6.4  TIMER2_isr
+0  17206  17   20 212426  6.5  Anal_Function
+0     10   0    0  20681  4.5  @const1092
+0     32   0    2   1481  5.9  @PSTRINGC_9600_31752_31753
+0     10   0    0   7644  5.5  @const1097
+0     38   0    2   4375  5.5  @PSTRINGR_9600_31752_31753
+0     10   0    0      5  1.0  @const1100
+0     10   0    0  29293 11.0  @const1101
+0     10   0    0             @const1103
+0     10   0    0             @const1104
+0     10   0    0             @const1106
+0     10   0    0             @const1107
+0     10   0    0             @const1109
+0     10   0    0             @const1110
+0     10   0    0             @const1112
+0     10   0    0             @const1113
+0     10   0    0             @const1115
+0     10   0    0             @const1116
+0     10   0    0             @const1118
+0     10   0    0             @const1119
+0     10   0    0             @const1121
+0     10   0    0             @const1122
+0     10   0    0             @const1124
+0     10   0    0             @const1125
+0     10   0    0             @const1127
+0     10   0    0             @const1128
+0     10   0    0             @const1130
+0     10   0    0             @const1131
+0     10   0    0             @const1133
+0     10   0    0             @const1134
+0     10   0    0             @const1136
+0     10   0    0             @const1137
+0     10   0    0             @const1139
+0     10   0    0             @const1140
+0     10   0    0             @const1142
+0     10   0    0             @const1143
+0     10   0    0             @const1145
+0     10   0    0             @const1146
+0     10   0    0             @const1148
+0     10   0    0             @const1149
+0     10   0    0             @const1151
+0     10   0    0             @const1152
+0     10   0    0             @const1154
+0     10   0    0             @const1155
+0     10   0    0             @const1157
+0     10   0    0             @const1158
+0     10   0    0             @const1160
+0     10   0    0             @const1161
+0     10   0    0             @const1163
+0     10   0    0             @const1164
+0     10   0    0             @const1166
+0     10   0    0             @const1167
+0     10   0    0             @const1169
+0     10   0    0             @const1170
+0     10   0    0             @const1172
+0     10   0    0             @const1173
+0     10   0    0             @const1175
+0     10   0    0             @const1176
+0     10   0    0             @const1178
+0     10   0    0             @const1179
+0     10   0    0             @const1181
+0     10   0    0             @const1182
+0     10   0    0             @const1184
+0     10   0    0             @const1185
+0     10   0    0             @const1187
+0     10   0    0             @const1188
+0     10   0    0             @const1190
+0     10   0    0             @const1191
+0     10   0    0             @const1193
+0     10   0    0             @const1194
+0     10   0    0             @const1196
+0     10   0    0             @const1197
+0     10   0    0             @const1199
+0     10   0    0             @const1200
+0     10   0    0             @const1202
+0     10   0    0             @const1203
+0     10   0    0             @const1205
+0     10   0    0             @const1206
+0     10   0    0             @const1208
+0     10   0    0             @const1209
+0     10   0    0             @const1211
+0     10   0    0             @const1212
+0     10   0    0             @const1214
+0     10   0    0             @const1215
+0     10   0    0             @const1218
+0     10   0    0             @const1220
+0     10   0    0             @const1222
+0     10   0    0             @const1224
+0     10   0    0             @const1226
+0     10   0    0             @const1228
+0     10   0    0             @const1230
+0     10   0    0             @const1232
+0     10   0    0             @const1234
+0     10   0    0             @const1236
+0     10   0    0             @const1238
+0     10   0    0             @const1240
+0     10   0    0             @const1242
+0     10   0    0             @const1244
+0     10   0    0             @const1246
+0     10   0    0             @const1248
+0     10   0    0             @const1250
+0     10   0    0             @const1252
+0     10   0    0             @const1254
+0     10   0    0             @const1256
+0   1188   1    1  20681  4.5  Send_Ouput
 0    188   0    0   2292  3.9  ForceAllAlarm
 0    252   0   11   1481  5.9  check_test
-0    398   1    3   7644  5.5  check_ack
+0    398   0    3   7644  5.5  check_ack
 0    548   1    3   4375  5.5  check_reset
-0   2408   4    7  10398  6.0  CheckAutoReset
-0   2604   4    4  27602 10.0  MAIN
-0     66   0    0             @goto40887
-0     66   0    0             @goto40919
+0   2408   2    7  10398  6.0  CheckAutoReset
+0   2852   3    7  29293 11.0  MAIN
+0     66   0    0             @goto6587
+0     66   0    0             @goto6619
+0     10   0    0             @const1268
  Inline         0             @cinit1
 
 Program metrics:
-    Functions               27
-    Statements              4444
-    Comments                3078
-    Volume (V)              396984
-    Difficulty (D)          128.7
-    Effort to implement (E) 51079635
-    Time to implement (T)   788 hours, 16 minutes
-    Est Delivered Bugs (B)  46
-    Cyclomatic Complexity   870
-    Maintainability (MI)    -6
+    Functions               33
+    Statements              5827
+    Comments                2526
+    Volume (V)              651386
+    Difficulty (D)          177.8
+    Effort to implement (E) 115821012
+    Time to implement (T)   1787 hours, 22 minutes
+    Est Delivered Bugs (B)  79
+    Cyclomatic Complexity   1300
+    Maintainability (MI)    68
 
  Segment     Used  Free
 -----------  ----  ----
 00000-00002     4  0  
 00004-00006     0  4  
 00008-000B8   178  0  
-000BA-07FFE  32252  330  
+000BA-0FFFE  50550  14800  
 
 
 
