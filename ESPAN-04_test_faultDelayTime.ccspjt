@@ -22,7 +22,7 @@ AdditionalOptionString=
 1=ESPAN-04_test_faultDelayTime.c
 
 [defines]
-buildcount=14
+buildcount=16
 enabled=0
 chip=1
 D1=
@@ -30,7 +30,7 @@ V1=
 
 [Opened Files]
 1=ESPAN-04_test_faultDelayTime.c
-t1=1982
+t1=313
 2=ESPAN-04.h
 t2=1
 3=ESPAN-04.h
@@ -38,11 +38,11 @@ t3=1
 Count=1
 
 [ProjectLog]
-Days=6
+Days=7
 D1=28-03-2017
 D1_L=4
 D1_L1=[39190]Stopped Editing.
-TotalEdit=12
+TotalEdit=81
 TotalDebug=0
 D1_E=10
 D1_D=0
@@ -80,7 +80,7 @@ D5_L=2
 D5_L1=[40796]Project Opened.
 D5_L2=[40813]Project Closed.
 D6=13-09-2021
-D6_L=7
+D6_L=8
 D6_L1=[38959]Project Opened.
 D6_L2=[38988]Started Editing.
 D6_L3=[40805]Stopped Editing.
@@ -88,6 +88,15 @@ D6_L4=[40821]Started Editing.
 D6_L5=[43445]Stopped Editing.
 D6_L6=[50553]Started Editing.
 D6_L7=[51149]Stopped Editing.
+D6_E=69
+D6_D=0
+D6_L8=[61726]Project Closed.
+D7=24-09-2021
+D7_L=4
+D7_L1=[29311]Project Opened.
+D7_L2=[30990]Started Editing.
+D7_L3=[31766]Stopped Editing.
+D7_L4=[32493]Started Editing.
 
 [Directories]
 Include=<default>

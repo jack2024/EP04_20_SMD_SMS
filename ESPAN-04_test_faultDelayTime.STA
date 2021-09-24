@@ -1,24 +1,24 @@
 
-ROM used:   50732/65536 (77%)
-            50732/65536 (77%) including unused fragments
+ROM used:   53432/65536 (82%)
+            53432/65536 (82%) including unused fragments
 
-            4.7 Average locations per line
-            8.7 Average locations per statement
+            4.9 Average locations per line
+            9.2 Average locations per statement
 
-RAM used:   3527/3896 (91%) at main() level
-            3553/3896 (91%) worst case
+RAM used:   3648/3896 (94%) at main() level
+            3674/3896 (94%) worst case
 
 Stack used: 4 worst case (3 in main + 1 for interrupts)
 Stack size: 31
 
 Lines Stmts  %   Files
 ----- ----- ---  -----
- 8791  5717  98  ESPAN-04_test_faultDelayTime.c
+ 8794  5717  98  ESPAN-04_test_faultDelayTime.c
    65     0   0  ..\ESPAN04_20 - Delay - SP - SMD - PIC18F252\ESPAN-04.h
  1022     0   0  C:\Program Files (x86)\PICC\devices\18F26K22.h
  1032   110   2  ..\ESPAN04_20 - Delay - SP - SMD - PIC18F252\23S17.c
 ----- -----
-10910  5827 Total
+10913  5827 Total
 
 Page ROM  %  RAM    Vol Diff  Functions:
 ---- --- --- ---    --- ----  ----------
@@ -34,31 +34,53 @@ Page ROM  %  RAM    Vol Diff  Functions:
 0     20   0    2     77  0.5  IO_SET_TRIS_B
 0      8   0    0             @PUTCHARI_BIU_1
 0     70   0    1             @PUTCHAR_2_
-0    272   0    0             @const977
-0    272   0    0             @const980
-0   1020   1    2   9835  5.5  Alarmtosend
+0    272   0    0             @const965
+0    272   0    0             @const968
+0   1210   1    2   9835  5.5  Alarmtosend
 0     92   0    3    131  3.5  StoreReleaseFault
 0     54   0    5             @READBITA
 0     66   0    6             @WRITEBITA
 0     86   0    5    357  6.6  CRC
 0    680   1    2   3305  7.4  checkCommand
-0  11876  12   12  63833 11.5  Modbus_Function
-0   2492   2    5  16988 12.0  Read_input
-0     34   0    5  16988 12.0  @MUL1616
-0     66   0    0             @goto61471
-0     66   0    0             @goto61515
-0     66   0    0             @goto61567
-0     66   0    0             @goto61611
-0   6390   6   13  31027  8.5  Read_Config
+0  11876  11   12  63833 11.5  Modbus_Function
+0   2818   3    5  16988 12.0  Read_input
+0     34   0    5             @MUL1616
+0     66   0    0             @goto16536
+0     66   0    0             @goto16583
+0     66   0    0             @goto16639
+0     66   0    0             @goto16687
+0   6666   6   13  31027  8.5  Read_Config
 0     16   0    0     35  1.6  RDA_isr
-0    164   0    1   1455  6.4  TIMER2_isr
-0  17206  17   20 212426  6.5  Anal_Function
-0     10   0    0  20681  4.5  @const1092
-0     32   0    2   1481  5.9  @PSTRINGC_9600_31752_31753
-0     10   0    0   7644  5.5  @const1097
-0     38   0    2   4375  5.5  @PSTRINGR_9600_31752_31753
-0     10   0    0      5  1.0  @const1100
-0     10   0    0  29293 11.0  @const1101
+0    160   0    1   1455  6.4  TIMER2_isr
+0  17926  17   20 212426  6.5  Anal_Function
+0     10   0    0             @const1059
+0     32   0    2             @PSTRINGC_9600_31752_31753
+0     10   0    0             @const1064
+0     38   0    2             @PSTRINGR_9600_31752_31753
+0     10   0    0             @const1067
+0     10   0    0             @const1068
+0     10   0    0             @const1070
+0     10   0    0             @const1071
+0     10   0    0             @const1073
+0     10   0    0             @const1074
+0     10   0    0             @const1076
+0     10   0    0             @const1077
+0     10   0    0             @const1079
+0     10   0    0             @const1080
+0     10   0    0             @const1082
+0     10   0    0             @const1083
+0     10   0    0             @const1085
+0     10   0    0             @const1086
+0     10   0    0             @const1088
+0     10   0    0             @const1089
+0     10   0    0             @const1091
+0     10   0    0             @const1092
+0     10   0    0             @const1094
+0     10   0    0             @const1095
+0     10   0    0             @const1097
+0     10   0    0             @const1098
+0     10   0    0             @const1100
+0     10   0    0             @const1101
 0     10   0    0             @const1103
 0     10   0    0             @const1104
 0     10   0    0             @const1106
@@ -113,78 +135,56 @@ Page ROM  %  RAM    Vol Diff  Functions:
 0     10   0    0             @const1179
 0     10   0    0             @const1181
 0     10   0    0             @const1182
-0     10   0    0             @const1184
 0     10   0    0             @const1185
 0     10   0    0             @const1187
-0     10   0    0             @const1188
-0     10   0    0             @const1190
+0     10   0    0             @const1189
 0     10   0    0             @const1191
 0     10   0    0             @const1193
-0     10   0    0             @const1194
-0     10   0    0             @const1196
+0     10   0    0             @const1195
 0     10   0    0             @const1197
 0     10   0    0             @const1199
-0     10   0    0             @const1200
-0     10   0    0             @const1202
+0     10   0    0             @const1201
 0     10   0    0             @const1203
 0     10   0    0             @const1205
-0     10   0    0             @const1206
-0     10   0    0             @const1208
+0     10   0    0             @const1207
 0     10   0    0             @const1209
 0     10   0    0             @const1211
-0     10   0    0             @const1212
-0     10   0    0             @const1214
+0     10   0    0             @const1213
 0     10   0    0             @const1215
-0     10   0    0             @const1218
-0     10   0    0             @const1220
-0     10   0    0             @const1222
-0     10   0    0             @const1224
-0     10   0    0             @const1226
-0     10   0    0             @const1228
-0     10   0    0             @const1230
-0     10   0    0             @const1232
-0     10   0    0             @const1234
-0     10   0    0             @const1236
-0     10   0    0             @const1238
-0     10   0    0             @const1240
-0     10   0    0             @const1242
-0     10   0    0             @const1244
-0     10   0    0             @const1246
-0     10   0    0             @const1248
-0     10   0    0             @const1250
-0     10   0    0             @const1252
-0     10   0    0             @const1254
-0     10   0    0             @const1256
-0   1188   1    1  20681  4.5  Send_Ouput
+0     10   0    0             @const1217
+0     10   0    0             @const1219
+0     10   0    0             @const1221
+0     10   0    0             @const1223
+0   1190   1    1  20681  4.5  Send_Ouput
 0    188   0    0   2292  3.9  ForceAllAlarm
 0    252   0   11   1481  5.9  check_test
 0    398   0    3   7644  5.5  check_ack
-0    548   1    3   4375  5.5  check_reset
-0   2408   2    7  10398  6.0  CheckAutoReset
-0   2852   3    7  29293 11.0  MAIN
-0     66   0    0             @goto6587
-0     66   0    0             @goto6619
-0     10   0    0             @const1268
+0    866   1    3   4375  5.5  check_reset
+0   3208   3    7  10398  6.0  CheckAutoReset
+0   2924   3    7  29293 11.0  MAIN
+0     66   0    0             @goto27729
+0     66   0    0             @goto27764
+0     10   0    0             @const1235
  Inline         0             @cinit1
 
 Program metrics:
-    Functions               33
+    Functions               26
     Statements              5827
-    Comments                2526
-    Volume (V)              651386
-    Difficulty (D)          177.8
-    Effort to implement (E) 115821012
-    Time to implement (T)   1787 hours, 22 minutes
-    Est Delivered Bugs (B)  79
-    Cyclomatic Complexity   1300
-    Maintainability (MI)    68
+    Comments                2562
+    Volume (V)              520809
+    Difficulty (D)          132.5
+    Effort to implement (E) 69002489
+    Time to implement (T)   1064 hours, 51 minutes
+    Est Delivered Bugs (B)  56
+    Cyclomatic Complexity   1015
+    Maintainability (MI)    39
 
  Segment     Used  Free
 -----------  ----  ----
 00000-00002     4  0  
 00004-00006     0  4  
 00008-000B8   178  0  
-000BA-0FFFE  50550  14800  
+000BA-0FFFE  53250  12100  
 
 
 

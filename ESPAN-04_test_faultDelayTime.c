@@ -99,15 +99,15 @@ int1 Ack_F = 0;
 int1 Reset_F = 0;
 
 int1 SyncStatus = 0;   //"0" -> No Sync signal
-int1 SyncFlag = 0;     //use for debounce sync signal
+//int1 SyncFlag = 0;     //use for debounce sync signal
 int8 Synctimer = 0x00; //use for debounce sync signal
 
 int8 Output1_8;
 int8 Output9_16;
 
-int8 Output595[4];
+//int8 Output595[4];
 
-int8 tempdata;
+//int8 tempdata;
 //int8 EEP_Config = 0x00;   //
 //int8 NUMBER_OF_595 ;
 
@@ -159,6 +159,7 @@ int8 Green9_10 ;
 int8 Green11_18 ;
 int8 Green19_20 ;
 
+/*
 int8 OUTRed1_8;
 int8 OUTRed9_10 ;
 int8 OUTRed11_18 ;
@@ -167,12 +168,12 @@ int8 OUTGreen1_8 ;
 int8 OUTGreen9_10 ;
 int8 OUTGreen11_18 ;
 int8 OUTGreen19_20 ;
-
+*/
 int8 AutoAck;
 int8 AutoAckTime;
 int8 FlashingRate;
 int8 NoOfPoint;
-int8 MasterSlaveSync;
+//int8 MasterSlaveSync;
 
 int1 StartRead = 0;
 volatile int8 StartReadCount;
@@ -207,7 +208,7 @@ unsigned char Data_Buff[1024];
 int8 MCP23s17_Ip_dat;
 
 
-int8 MCP23s17_Op_dat;
+//int8 MCP23s17_Op_dat;
 
 unsigned char T_timeout;    //use for calculate RxD timeout
 int16 index = 0x00; //use for Loop
@@ -236,6 +237,8 @@ unsigned char SMS_Massage17[32];
 unsigned char SMS_Massage18[32];
 unsigned char SMS_Massage19[32];
 unsigned char SMS_Massage20[32];
+
+unsigned char SMS_MassageSUM[160];
 
 unsigned char const CRC_Table_Hi[] = {
 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81,
@@ -303,7 +306,7 @@ struct Bit64 Inputt;//,Output,InputType;//,FaultType,OutputType,OutputBoth;
 struct Bit64 Output,InputType;
 struct Bit64 FaultType,OutputType,OutputBoth;
 struct Bit64 AlarmIndicator,Ack,In,In2;
-struct Bit64 LED_Colour,AckSend,RED_Colour,GREEN_Colour;
+struct Bit64 AckSend,RED_Colour,GREEN_Colour;
 struct Bit64 SendSMS;
 
 int1 FaultAgo[21];
@@ -317,7 +320,7 @@ int1 FaultNCNO[21];
 
 //volatile int16 ReadIn_Count =0;
 //int1 ReadIn_flag = 0;
-
+/*
 int8 DelayTime1 = 0;
 int8 DelayTime2 = 0;
 int8 DelayTime3 = 0;
@@ -338,8 +341,11 @@ int8 DelayTime17 = 0;
 int8 DelayTime18 = 0;
 int8 DelayTime19 = 0;
 int8 DelayTime20 = 0;
-
-
+*/
+void sendsum_sms(void)
+{
+   
+}
 //////////////////////////////--Function--/////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////MODBUS Routine//////////////////////////////////
@@ -7851,6 +7857,7 @@ void check_ack(void)
              In.B1 = 0;
              In2.B1 = 0;      //for auto reset
              Output.B1 = 0;
+             SendSMS.B1 =0;
            }
            //if(In.B2 == 1 || ((Inputt.B2 ^ InputType.B2) == 1))
            if((In.B2 == 1)||(In2.B2 == 1))
@@ -7859,6 +7866,7 @@ void check_ack(void)
              In.B2 = 0;
              In2.B2 = 0;      //for auto reset
              Output.B2 = 0;
+             SendSMS.B2 =0;
            }
            //if(In.B3 == 1 || ((Inputt.B3 ^ InputType.B3) == 1))
            if((In.B3 == 1)||(In2.B3 == 1))
@@ -7867,6 +7875,7 @@ void check_ack(void)
              In.B3 = 0;
              In2.B3 = 0;      //for auto reset
              Output.B3 = 0;
+             SendSMS.B3 =0;
            }
            //if(In.B4 == 1 || ((Inputt.B4 ^ InputType.B4) == 1))
            if((In.B4 == 1)||(In2.B4 == 1))
@@ -7875,6 +7884,7 @@ void check_ack(void)
              In.B4 = 0;
              In2.B4 = 0;      //for auto reset
              Output.B4 = 0;
+             SendSMS.B4 =0;
            }
            //if(In.B5 == 1 || ((Inputt.B5 ^ InputType.B5) == 1))
            if((In.B5 == 1)||(In2.B5 == 1))
@@ -7883,6 +7893,7 @@ void check_ack(void)
              In.B5 = 0;
              In2.B5 = 0;      //for auto reset
              Output.B5 = 0;
+             SendSMS.B5 =0;
            }
            //if(In.B6 == 1 || ((Inputt.B6 ^ InputType.B6) == 1))
            if((In.B6 == 1 )||(In2.B6 == 1 ))
@@ -7891,6 +7902,7 @@ void check_ack(void)
              In.B6 = 0;
              In2.B6 = 0;      //for auto reset
              Output.B6 = 0;
+             SendSMS.B6 =0;
            }
            //if(In.B7 == 1 || ((Inputt.B7 ^ InputType.B7) == 1))
            if((In.B7 == 1 )||(In2.B7 == 1 ))
@@ -7899,6 +7911,7 @@ void check_ack(void)
              In.B7 = 0;
              In2.B7 = 0;      //for auto reset
              Output.B7 = 0;
+             SendSMS.B7 =0;
            }
            //if(In.B8 == 1 || ((Inputt.B8 ^ InputType.B8) == 1))
            if((In.B8 == 1 )||(In2.B8 == 1 ))
@@ -7907,6 +7920,7 @@ void check_ack(void)
              In.B8 = 0;
              In2.B8 = 0;      //for auto reset
              Output.B8 = 0;
+             SendSMS.B8 =0;
            }
           // if(In.B9 == 1 || ((Inputt.B9 ^ InputType.B9) == 1))
            if((In.B9 == 1 )||(In2.B9 == 1 ))
@@ -7915,6 +7929,7 @@ void check_ack(void)
              In.B9 = 0;
              In2.B9 = 0;      //for auto reset
              Output.B9 = 0;
+             SendSMS.B9 =0;
            }
            //if(In.B10 == 1 || ((Inputt.B10 ^ InputType.B10) == 1))
            if((In.B10 == 1)||(In2.B10 == 1))
@@ -7923,6 +7938,7 @@ void check_ack(void)
              In.B10 = 0;
              In2.B10 = 0;      //for auto reset
              Output.B10 = 0;
+             SendSMS.B10 =0;
            }
            //if(In.B11 == 1 || ((Inputt.B11 ^ InputType.B11) == 1))
            if((In.B11 == 1)||(In2.B11 == 1))
@@ -7931,6 +7947,7 @@ void check_ack(void)
              In.B11 = 0;
              In2.B11 = 0;      //for auto reset
              Output.B11 = 0;
+             SendSMS.B11 =0;
            }
            //if(In.B12 == 1 || ((Inputt.B12 ^ InputType.B12) == 1))
            if((In.B12 == 1)||(In2.B12 == 1))
@@ -7939,6 +7956,7 @@ void check_ack(void)
              In.B12 = 0;
              In2.B12 = 0;      //for auto reset
              Output.B12 = 0;
+             SendSMS.B12 =0;
            }
            //if(In.B13 == 1 || ((Inputt.B13 ^ InputType.B13) == 1))
            if((In.B13 == 1 )||(In2.B13 == 1 ))
@@ -7947,6 +7965,7 @@ void check_ack(void)
              In.B13 = 0;
              In2.B13 = 0;      //for auto reset
              Output.B13 = 0;
+             SendSMS.B13 =0;
            }
            //if(In.B14 == 1 || ((Inputt.B14 ^ InputType.B14) == 1))
            if((In.B14 == 1)||(In2.B14 == 1))
@@ -7955,6 +7974,7 @@ void check_ack(void)
              In.B14 = 0;
              In2.B14 = 0;      //for auto reset
              Output.B14 = 0;
+             SendSMS.B14 =0;
            }
            //if(In.B15 == 1 || ((Inputt.B15 ^ InputType.B15) == 1))
            if((In.B15 == 1)||(In2.B15 == 1))
@@ -7963,6 +7983,7 @@ void check_ack(void)
              In.B15 = 0;
              In2.B15 = 0;      //for auto reset
              Output.B15 = 0;
+             SendSMS.B15 =0;
            }
            //if(In.B16 == 1 || ((Inputt.B16 ^ InputType.B16) == 1))
            if((In.B16 == 1)||(In2.B16 == 1))
@@ -7971,6 +7992,7 @@ void check_ack(void)
              In.B16 = 0;
              In2.B16 = 0;      //for auto reset
              Output.B16 = 0;
+             SendSMS.B16 =0;
            }
         
            //if(In.B17 == 1 || ((Inputt.B17 ^ InputType.B17) == 1))
@@ -7980,6 +8002,7 @@ void check_ack(void)
              In.B17 = 0;
              In2.B17 = 0;      //for auto reset
              Output.B17 = 0;
+             SendSMS.B17 =0;
            }
            //if(In.B18 == 1 || ((Inputt.B18 ^ InputType.B18) == 1))
            if((In.B18 == 1)||(In2.B18 == 1))
@@ -7988,6 +8011,7 @@ void check_ack(void)
              In.B18 = 0;
              In2.B18 = 0;      //for auto reset
              Output.B18 = 0;
+             SendSMS.B18 =0;
            }
            //if(In.B19 == 1 || ((Inputt.B19 ^ InputType.B19) == 1))
            if((In.B19 == 1)||(In2.B19 == 1))
@@ -7996,6 +8020,7 @@ void check_ack(void)
              In.B19 = 0;
              In2.B19 = 0;      //for auto reset
              Output.B19 = 0;
+             SendSMS.B19 =0;
            }
            if((In.B20 == 1)||(In2.B20 == 1))
            {
@@ -8003,6 +8028,7 @@ void check_ack(void)
              In.B20 = 0;
              In2.B20 = 0;      //for auto reset
              Output.B20 = 0;
+             SendSMS.B20 =0;
            }
            ///////////////////////////////////////////////////////////
           
