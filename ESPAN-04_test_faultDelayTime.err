@@ -1,1 +1,46 @@
-Compiling D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime on 24-¡.Â.-21 at 09:07
+Compiling D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime on 28-¡.Â.-21 at 16:34
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 5739(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 5749(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 5831(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 5841(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 5922(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 5932(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 6013(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 6023(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 6104(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 6114(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 6195(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 6205(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 6286(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 6296(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 6377(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 6387(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 6468(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 6478(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 6559(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 6569(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 6656(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 6666(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 6748(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 6758(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 6839(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 6849(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 6930(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 6940(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 7021(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 7031(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 7112(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 7122(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 7202(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 7212(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 7292(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 7302(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 7382(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 7392(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 7473(38,39): Code has no effect
+>>> Warning 207 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 7483(38,39): Code has no effect
+>>> Warning 202 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 1733(32,33): Variable never used:   k
+>>> Warning 202 "D:\jobESP\ESPAN-04\Firmware\SPAN-04\ESPAN04_20 - Delay - SP - SMD - SMS\ESPAN-04_test_faultDelayTime.c" Line 3060(20,21): Variable never used:   k
+      Memory usage:   ROM=74%      RAM=95% - 95%
+      0 Errors,  42 Warnings.
+Build Successful.
